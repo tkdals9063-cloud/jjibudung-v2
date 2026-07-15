@@ -1,0 +1,1 @@
+Formatter.formatTime(controller.data.totalSeconds)

@@ -13,9 +13,10 @@ class PreparationScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
+  child: SingleChildScrollView(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
 
@@ -113,7 +114,7 @@ class PreparationScreen extends StatelessWidget {
                 ),
               ),
 
-              const Spacer(),
+              const SizedBox(height: 40),
 
               SizedBox(
                 height: 58,

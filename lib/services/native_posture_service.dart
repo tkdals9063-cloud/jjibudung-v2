@@ -2,8 +2,11 @@ import 'package:flutter/services.dart';
 
 enum PostureServiceState {
   stopped,
+  starting,
   running,
   paused,
+  calibrating,
+  error,
 }
 
 class NativePostureService {

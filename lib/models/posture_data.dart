@@ -31,7 +31,7 @@ class PostureData {
     );
   }
 
-  PostureData copyWith({
+    PostureData copyWith({
     int? totalSeconds,
     int? badTotalSeconds,
     int? badContinuousSeconds,
@@ -50,5 +50,22 @@ class PostureData {
       isBadPosture: isBadPosture ?? this.isBadPosture,
       isWorking: isWorking ?? this.isWorking,
     );
+  }
+
+  /// 좋은 자세 유지 시간
+  int get goodSeconds => totalSeconds - badTotalSeconds;
+
+  /// 자세 유지율(%)
+  double get postureRate {
+    if (totalSeconds == 0) return 100.0;
+
+    return ((totalSeconds - badTotalSeconds) / totalSeconds) * 100;
+  }
+
+  /// 나쁜 자세 비율(%)
+  double get badPostureRate {
+    if (totalSeconds == 0) return 0;
+
+    return (badTotalSeconds / totalSeconds) * 100;
   }
 }

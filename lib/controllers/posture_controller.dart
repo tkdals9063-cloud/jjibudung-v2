@@ -1,7 +1,11 @@
 import 'package:flutter/foundation.dart';
+
 import '../models/posture_data.dart';
+import '../services/posture_service.dart';
 
 class PostureController extends ChangeNotifier {
+  final PostureService _service = PostureService();
+
   PostureData _data = PostureData.initial();
 
   PostureData get data => _data;
@@ -30,31 +34,39 @@ class PostureController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateAngle(double angle) {
-    final diff = (angle - _data.baselineAngle).abs();
-
-    _data = _data.copyWith(
+  void updateAngle({
+  required double angle,
+  required double angleThreshold,
+}) {
+  _data = _data.copyWith(
+    currentAngle: angle,
+    isBadPosture: _service.isBadPosture(
       currentAngle: angle,
-      isBadPosture: diff >= 15,
-    );
+      baselineAngle: _data.baselineAngle,
+      angleThreshold: angleThreshold,
+    ),
+  );
+
+  notifyListeners();
+}
+
+ void tick({
+  required double angleThreshold,
+}) {
+    if (!_data.isWorking) return;
+
+    _data = _service.update(
+  data: _data,
+  currentAngle: _data.currentAngle,
+  elapsedSeconds: 1,
+  angleThreshold: angleThreshold,
+);
 
     notifyListeners();
   }
 
-  void tick() {
-    if (!_data.isWorking) return;
-
-    _data = _data.copyWith(
-      totalSeconds: _data.totalSeconds + 1,
-      badTotalSeconds: _data.isBadPosture
-          ? _data.badTotalSeconds + 1
-          : _data.badTotalSeconds,
-      badContinuousSeconds: _data.isBadPosture
-          ? _data.badContinuousSeconds + 1
-          : 0,
-    );
-
-    notifyListeners();
+  bool shouldVibrate() {
+    return _service.shouldVibrate(_data);
   }
 
   void reset() {

@@ -138,6 +138,7 @@ class PreparationScreen extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
   }
 

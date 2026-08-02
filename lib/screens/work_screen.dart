@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../controllers/posture_controller.dart';
 import '../services/native_posture_service.dart';
 import '../utils/formatter.dart';
+import 'result_screen.dart';
 
 class WorkScreen extends StatefulWidget {
   final double baselineAngle;
@@ -87,17 +88,33 @@ controller.tick(
   }
 
   Future<void> _finishWork() async {
-    _timer?.cancel();
+  _timer?.cancel();
 
-    await NativePostureService.stop();
+  await NativePostureService.stop();
 
-    controller.stopWork();
+  controller.stopWork();
 
-    if (!mounted) return;
+  if (!mounted) return;
 
-    // TODO :
-    // ResultScreen 완성 후 이동
-  }
+  final total = controller.data.totalSeconds;
+  final bad = controller.data.badTotalSeconds;
+  final good = total - bad;
+
+  final earnedPoint = good ~/ 60;
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ResultScreen(
+        totalSeconds: total,
+        goodSeconds: good,
+        badSeconds: bad,
+        postureRate: controller.data.postureRate,
+        earnedPoint: earnedPoint,
+      ),
+    ),
+  );
+}
 
  @override
 void dispose() {

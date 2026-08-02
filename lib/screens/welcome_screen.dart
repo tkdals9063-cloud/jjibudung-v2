@@ -4,32 +4,33 @@ import 'package:flutter/material.dart';
 
 import '../widgets/info_card.dart';
 import 'preparation_screen.dart';
+import '../data/quotes.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
-  static const List<Map<String, String>> quotes = [
-    {
-      "quote": "성공은 매일 반복한 작은 노력들의 합이다.",
-      "author": "로버트 콜리어",
-    },
-    {
-      "quote": "우리는 반복하는 행동의 결과물이다.",
-      "author": "아리스토텔레스",
-    },
-    {
-      "quote": "천재는 1%의 영감과 99%의 노력이다.",
-      "author": "토머스 에디슨",
-    },
-    {
-      "quote": "미래를 예측하는 가장 좋은 방법은 미래를 만드는 것이다.",
-      "author": "피터 드러커",
-    },
-    {
-      "quote": "오늘의 작은 성장이 내일의 큰 변화를 만든다.",
-      "author": "제임스 클리어",
-    },
-  ];
+  static const List<QuotesData> quotes = [
+  QuotesData(
+    quote: "성공은 매일 반복한 작은 노력들의 합이다.",
+    author: "로버트 콜리어",
+  ),
+  QuotesData(
+    quote: "우리는 반복하는 행동의 결과물이다.",
+    author: "아리스토텔레스",
+  ),
+  QuotesData(
+    quote: "천재는 1%의 영감과 99%의 노력이다.",
+    author: "토머스 에디슨",
+  ),
+  QuotesData(
+    quote: "미래를 예측하는 가장 좋은 방법은 미래를 만드는 것이다.",
+    author: "피터 드러커",
+  ),
+  QuotesData(
+    quote: "오늘의 작은 성장이 내일의 큰 변화를 만든다.",
+    author: "제임스 클리어",
+  ),
+];
 
   String greeting() {
     final hour = DateTime.now().hour;
@@ -93,7 +94,7 @@ class WelcomeScreen extends StatelessWidget {
                       const SizedBox(height: 18),
 
                       Text(
-                        "\"${quote["quote"]}\"",
+  "\"${quote.quote}\"",
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 18,
@@ -104,7 +105,7 @@ class WelcomeScreen extends StatelessWidget {
                       const SizedBox(height: 16),
 
                       Text(
-                        "- ${quote["author"]}",
+                        "- ${quote.author}",
                         style: const TextStyle(
                           color: Colors.grey,
                         ),

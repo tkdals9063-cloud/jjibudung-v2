@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../controllers/posture_controller.dart';
 import '../services/native_posture_service.dart';
@@ -47,7 +49,13 @@ void initState() {
       baselineAngle: widget.baselineAngle,
     );
 
-final started = await NativePostureService.start(    
+    // Android 13+ requires this at runtime to show the foreground service's
+    // persistent notification. The service still runs without it either way.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await Permission.notification.request();
+    }
+
+final started = await NativePostureService.start(
   baselineAngle: widget.baselineAngle,
   angleThreshold: angleThreshold,
 );

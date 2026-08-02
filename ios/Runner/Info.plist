@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMotionUsageDescription</key>
+	<string>작업 중 자세(기기 기울기)를 측정하기 위해 모션 센서를 사용합니다.</string>
 </dict>
 </plist>

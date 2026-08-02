@@ -2,6 +2,9 @@
 
 #include <optional>
 
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+
 #include "flutter/generated_plugin_registrant.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -26,6 +29,30 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
+
+  // Windows desktops have no standard tilt/accelerometer API, so this only
+  // answers the channel (to avoid a MissingPluginException freezing the
+  // calibration countdown) instead of returning a real angle.
+  flutter::MethodChannel<flutter::EncodableValue> posture_channel(
+      flutter_controller_->engine()->messenger(), "jjibudung/posture_service",
+      &flutter::StandardMethodCodec::GetInstance());
+
+  posture_channel.SetMethodCallHandler(
+      [](const flutter::MethodCall<flutter::EncodableValue>& call,
+         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+             result) {
+        const std::string& method = call.method_name();
+
+        if (method == "ping") {
+          result->Success(flutter::EncodableValue("pong"));
+        } else if (method == "start" || method == "stop") {
+          result->Success(flutter::EncodableValue(true));
+        } else if (method == "getCurrentAngle") {
+          result->Success(flutter::EncodableValue(0.0));
+        } else {
+          result->NotImplemented();
+        }
+      });
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();

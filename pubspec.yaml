@@ -11,6 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  marquee: ^2.3.0
+
   cupertino_icons: ^1.0.9
 
   sensors_plus: ^7.0.0

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 
 enum PostureServiceState {
@@ -12,8 +14,17 @@ enum PostureServiceState {
 class NativePostureService {
   NativePostureService._();
 
-  static const MethodChannel _channel =
-      MethodChannel("jjibudung/posture_service");
+  static const MethodChannel _channel = MethodChannel(
+    "jjibudung/posture_service",
+  );
+
+  static const EventChannel _eventChannel = EventChannel(
+    "jjibudung/posture_stream",
+  );
+
+  static Stream<double> get angleStream => _eventChannel
+      .receiveBroadcastStream()
+      .map((event) => (event as num).toDouble());
 
   // ===========================================================
   // Foreground Service 시작
@@ -24,13 +35,10 @@ class NativePostureService {
     required double angleThreshold,
   }) async {
     try {
-      final result = await _channel.invokeMethod<bool>(
-        "start",
-        {
-          "baselineAngle": baselineAngle,
-          "angleThreshold": angleThreshold,
-        },
-      );
+      final result = await _channel.invokeMethod<bool>("start", {
+        "baselineAngle": baselineAngle,
+        "angleThreshold": angleThreshold,
+      });
 
       return result ?? false;
     } on PlatformException {
@@ -44,8 +52,7 @@ class NativePostureService {
 
   static Future<bool> stop() async {
     try {
-      final result =
-          await _channel.invokeMethod<bool>("stop");
+      final result = await _channel.invokeMethod<bool>("stop");
 
       return result ?? false;
     } on PlatformException {
@@ -59,8 +66,7 @@ class NativePostureService {
 
   static Future<bool> pause() async {
     try {
-      final result =
-          await _channel.invokeMethod<bool>("pause");
+      final result = await _channel.invokeMethod<bool>("pause");
 
       return result ?? false;
     } on PlatformException {
@@ -74,8 +80,7 @@ class NativePostureService {
 
   static Future<bool> resume() async {
     try {
-      final result =
-          await _channel.invokeMethod<bool>("resume");
+      final result = await _channel.invokeMethod<bool>("resume");
 
       return result ?? false;
     } on PlatformException {
@@ -87,16 +92,11 @@ class NativePostureService {
   // 기준각 변경
   // ===========================================================
 
-  static Future<bool> updateBaseline(
-      double baselineAngle) async {
+  static Future<bool> updateBaseline(double baselineAngle) async {
     try {
-      final result =
-          await _channel.invokeMethod<bool>(
-        "updateBaseline",
-        {
-          "baselineAngle": baselineAngle,
-        },
-      );
+      final result = await _channel.invokeMethod<bool>("updateBaseline", {
+        "baselineAngle": baselineAngle,
+      });
 
       return result ?? false;
     } on PlatformException {
@@ -110,10 +110,7 @@ class NativePostureService {
 
   static Future<PostureServiceState> getState() async {
     try {
-      final result =
-          await _channel.invokeMethod<String>(
-        "getState",
-      );
+      final result = await _channel.invokeMethod<String>("getState");
 
       switch (result) {
         case "running":
@@ -136,10 +133,7 @@ class NativePostureService {
 
   static Future<double> getBaseline() async {
     try {
-      final result =
-          await _channel.invokeMethod<double>(
-        "getBaseline",
-      );
+      final result = await _channel.invokeMethod<double>("getBaseline");
 
       return result ?? 0.0;
     } on PlatformException {
@@ -153,10 +147,7 @@ class NativePostureService {
 
   static Future<double> getCurrentAngle() async {
     try {
-      final result =
-          await _channel.invokeMethod<double>(
-        "getCurrentAngle",
-      );
+      final result = await _channel.invokeMethod<double>("getCurrentAngle");
 
       return result ?? 0.0;
     } on PlatformException {
@@ -170,10 +161,7 @@ class NativePostureService {
 
   static Future<bool> isBadPosture() async {
     try {
-      final result =
-          await _channel.invokeMethod<bool>(
-        "isBadPosture",
-      );
+      final result = await _channel.invokeMethod<bool>("isBadPosture");
 
       return result ?? false;
     } on PlatformException {
@@ -187,8 +175,7 @@ class NativePostureService {
 
   static Future<Map<dynamic, dynamic>?> getSessionData() async {
     try {
-      final result =
-          await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         "getSessionData",
       );
 
@@ -204,8 +191,7 @@ class NativePostureService {
 
   static Future<bool> ping() async {
     try {
-      final result =
-          await _channel.invokeMethod<String>("ping");
+      final result = await _channel.invokeMethod<String>("ping");
 
       return result == "pong";
     } on PlatformException {

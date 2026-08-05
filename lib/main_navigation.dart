@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/welcome_screen.dart';
 import 'screens/played_screen.dart';
+import 'screens/reward_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -18,6 +19,8 @@ class _MainNavigationState extends State<MainNavigation> {
     const PlayedScreen(),
 
     const Center(child: Text("스트레칭", style: TextStyle(fontSize: 24))),
+
+    const RewardScreen(),
 
     const Center(child: Text("설정", style: TextStyle(fontSize: 24))),
   ];
@@ -46,6 +49,8 @@ class _MainNavigationState extends State<MainNavigation> {
             icon: Icon(Icons.accessibility_new),
             label: "스트레칭",
           ),
+
+          BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: "상점"),
 
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: "설정"),
         ],

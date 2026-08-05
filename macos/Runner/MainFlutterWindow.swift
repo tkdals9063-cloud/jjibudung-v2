@@ -1,7 +1,23 @@
 import Cocoa
 import FlutterMacOS
 
+// macOS has no public accelerometer/tilt API. Sends a single stub reading
+// on listen so callers averaging the stream (e.g. calibration) don't
+// operate on an empty list.
+class PostureStreamHandler: NSObject, FlutterStreamHandler {
+  func onListen(withArguments arguments: Any?, eventSink: @escaping FlutterEventSink) -> FlutterError? {
+    eventSink(0.0)
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    return nil
+  }
+}
+
 class MainFlutterWindow: NSWindow {
+  private let postureStreamHandler = PostureStreamHandler()
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
@@ -32,6 +48,12 @@ class MainFlutterWindow: NSWindow {
         result(FlutterMethodNotImplemented)
       }
     }
+
+    let streamChannel = FlutterEventChannel(
+      name: "jjibudung/posture_stream",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    streamChannel.setStreamHandler(postureStreamHandler)
 
     super.awakeFromNib()
   }

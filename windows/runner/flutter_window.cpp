@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include <flutter/event_channel.h>
+#include <flutter/event_stream_handler_functions.h>
 #include <flutter/method_channel.h>
 #include <flutter/standard_method_codec.h>
 
@@ -53,6 +55,29 @@ bool FlutterWindow::OnCreate() {
           result->NotImplemented();
         }
       });
+
+  flutter::EventChannel<flutter::EncodableValue> posture_stream_channel(
+      flutter_controller_->engine()->messenger(), "jjibudung/posture_stream",
+      &flutter::StandardMethodCodec::GetInstance());
+
+  posture_stream_channel.SetStreamHandler(
+      std::make_unique<
+          flutter::StreamHandlerFunctions<flutter::EncodableValue>>(
+          [](const flutter::EncodableValue* arguments,
+             std::unique_ptr<flutter::EventSink<flutter::EncodableValue>>&&
+                 events)
+              -> std::unique_ptr<
+                  flutter::StreamHandlerError<flutter::EncodableValue>> {
+            // Windows has no standard tilt/accelerometer API; send a single
+            // stub reading so calibration doesn't average an empty list.
+            events->Success(flutter::EncodableValue(0.0));
+            return nullptr;
+          },
+          [](const flutter::EncodableValue* arguments)
+              -> std::unique_ptr<
+                  flutter::StreamHandlerError<flutter::EncodableValue>> {
+            return nullptr;
+          }));
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();

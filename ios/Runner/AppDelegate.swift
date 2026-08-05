@@ -41,6 +41,12 @@ import CoreMotion
           result(FlutterMethodNotImplemented)
         }
       }
+
+      let streamChannel = FlutterEventChannel(
+        name: "jjibudung/posture_stream",
+        binaryMessenger: controller.binaryMessenger
+      )
+      streamChannel.setStreamHandler(self)
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -56,5 +62,27 @@ import CoreMotion
       // Pitch, matching the Android rotation-vector angle calculation.
       self.currentAngle = motion.attitude.pitch * 180 / Double.pi
     }
+  }
+}
+
+extension AppDelegate: FlutterStreamHandler {
+  func onListen(withArguments arguments: Any?, eventSink: @escaping FlutterEventSink) -> FlutterError? {
+    guard motionManager.isDeviceMotionAvailable else { return nil }
+
+    motionManager.deviceMotionUpdateInterval = 0.1
+
+    motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
+      guard let self = self, let motion = motion else { return }
+      let angle = motion.attitude.pitch * 180 / Double.pi
+      self.currentAngle = angle
+      eventSink(angle)
+    }
+
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    motionManager.stopDeviceMotionUpdates()
+    return nil
   }
 }

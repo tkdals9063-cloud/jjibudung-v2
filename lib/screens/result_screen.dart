@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../main_navigation.dart';
 import '../utils/formatter.dart';
-import 'welcome_screen.dart';
 
 class ResultScreen extends StatelessWidget {
   final int totalSeconds;
@@ -107,7 +107,7 @@ class ResultScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                    MaterialPageRoute(builder: (_) => const MainNavigation()),
                     (route) => false,
                   );
                 },

@@ -12,6 +12,9 @@ class StorageService {
   static const String todayGoodPostureTimeKey = 'today_good_posture_time';
   static const String totalGoodPostureTimeKey = 'total_good_posture_time';
   static const String weekUsageDatesKey = 'week_usage_dates';
+  static const String hasInitialPostureProfileKey =
+      'has_initial_posture_profile';
+  static const String initialBaselineAngleKey = 'initial_baseline_angle';
 
   static String _dateKey(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}-'
@@ -56,13 +59,17 @@ class StorageService {
       await prefs.setInt(todayGoodPostureTimeKey, 0);
 
       var streak = prefs.getInt(streakKey) ?? 0;
-      final last = lastStudyDate == null ? null : DateTime.tryParse(lastStudyDate);
+      final last = lastStudyDate == null
+          ? null
+          : DateTime.tryParse(lastStudyDate);
 
       if (last == null) {
         streak = 1;
-      } else if (DateTime(now.year, now.month, now.day)
-              .difference(DateTime(last.year, last.month, last.day))
-              .inDays ==
+      } else if (DateTime(
+            now.year,
+            now.month,
+            now.day,
+          ).difference(DateTime(last.year, last.month, last.day)).inDays ==
           1) {
         streak++;
       } else {
@@ -87,13 +94,17 @@ class StorageService {
     await prefs.setDouble(postureRateKey, postureRate);
     await _saveUsageDate(prefs, todayKey);
   }
-  
+
   static Future<List<bool>> loadCurrentWeekUsage() async {
     final prefs = await SharedPreferences.getInstance();
-    final dates = (prefs.getStringList(weekUsageDatesKey) ?? <String>[]).toSet();
+    final dates = (prefs.getStringList(weekUsageDatesKey) ?? <String>[])
+        .toSet();
     final now = DateTime.now();
-    final monday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - DateTime.monday));
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - DateTime.monday));
 
     return List<bool>.generate(7, (index) {
       return dates.contains(_dateKey(monday.add(Duration(days: index))));
@@ -135,5 +146,23 @@ class StorageService {
   static Future<int> loadTotalGoodPostureTime() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(totalGoodPostureTimeKey) ?? 0;
+  }
+
+  static Future<void> saveInitialPostureProfile({
+    required double baselineAngle,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(hasInitialPostureProfileKey, true);
+    await prefs.setDouble(initialBaselineAngleKey, baselineAngle);
+  }
+
+  static Future<bool> loadHasInitialPostureProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(hasInitialPostureProfileKey) ?? false;
+  }
+
+  static Future<double?> loadInitialBaselineAngle() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(initialBaselineAngleKey);
   }
 }

@@ -10,6 +10,7 @@ import 'package:marquee/marquee.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/study_dashboard_card.dart';
 import '../widgets/posture_profile_summary_card.dart';
+import '../widgets/posture_profile_unlock_card.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -35,6 +36,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   List<bool> _weekUsage = List<bool>.filled(7, false);
 
+  bool _hasPostureProfile = false;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +50,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final point = await StorageService.loadPoint();
     final streak = await StorageService.loadStreak();
     final weekUsage = await StorageService.loadCurrentWeekUsage();
+    final hasPostureProfile =
+        await StorageService.loadHasInitialPostureProfile();
 
     if (!mounted) return;
 
@@ -56,6 +61,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       _point = point;
       _streak = streak;
       _weekUsage = weekUsage;
+      _hasPostureProfile = hasPostureProfile;
       _postureRate = today == 0 ? 100 : (good / today) * 100;
     });
   }
@@ -188,7 +194,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
 
               const SizedBox(height: 16),
-              const PostureProfileSummaryCard(),
+              if (_hasPostureProfile)
+                const PostureProfileSummaryCard()
+              else
+                PostureProfileUnlockCard(
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PreparationScreen(),
+                      ),
+                    );
+                    if (mounted) _loadData();
+                  },
+                ),
 
               const SizedBox(height: 24),
             ],

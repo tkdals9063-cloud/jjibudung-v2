@@ -15,6 +15,7 @@ class StorageService {
   static const String hasInitialPostureProfileKey =
       'has_initial_posture_profile';
   static const String initialBaselineAngleKey = 'initial_baseline_angle';
+  static const String postureProfileIdKey = 'posture_profile_id';
 
   static String _dateKey(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}-'
@@ -111,6 +112,41 @@ class StorageService {
     });
   }
 
+  // 기준 자세 측정이 끝나면 자세 친구를 해금한다.
+  // 사용자는 이 순간 바른 자세로 앉아 있으므로 초기 타입은 균형형으로 둔다.
+  static Future<void> saveInitialPostureProfile({
+    required double baselineAngle,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(hasInitialPostureProfileKey, true);
+    await prefs.setDouble(initialBaselineAngleKey, baselineAngle);
+    await prefs.setString(postureProfileIdKey, 'balanced');
+  }
+
+  static Future<bool> loadHasInitialPostureProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(hasInitialPostureProfileKey) ?? false;
+  }
+
+  // 현재 센서는 기준 자세에서 벗어난 빈도를 측정한다.
+  // 따라서 의학적 진단이 아니라 앱 안의 '자세 친구' 표시용 경향값이다.
+  static Future<void> updatePostureProfileFromRate({
+    required double postureRate,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final profileId = postureRate >= 85
+        ? 'balanced'
+        : postureRate >= 65
+        ? 'forward'
+        : 'slouch';
+    await prefs.setString(postureProfileIdKey, profileId);
+  }
+
+  static Future<String> loadPostureProfileId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(postureProfileIdKey) ?? 'balanced';
+  }
+
   static Future<int> loadTodayStudyTime() async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getString(lastStudyDateKey) != _dateKey(DateTime.now())) return 0;
@@ -146,23 +182,5 @@ class StorageService {
   static Future<int> loadTotalGoodPostureTime() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(totalGoodPostureTimeKey) ?? 0;
-  }
-
-  static Future<void> saveInitialPostureProfile({
-    required double baselineAngle,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(hasInitialPostureProfileKey, true);
-    await prefs.setDouble(initialBaselineAngleKey, baselineAngle);
-  }
-
-  static Future<bool> loadHasInitialPostureProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(hasInitialPostureProfileKey) ?? false;
-  }
-
-  static Future<double?> loadInitialBaselineAngle() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(initialBaselineAngleKey);
   }
 }

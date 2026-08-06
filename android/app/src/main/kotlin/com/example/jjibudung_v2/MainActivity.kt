@@ -26,18 +26,19 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             CHANNEL
         ).setMethodCallHandler { call, result ->
-
             when (call.method) {
-
-                "ping" -> {
-                    result.success("pong")
-                }
+                "ping" -> result.success("pong")
 
                 "start" -> {
-                    ContextCompat.startForegroundService(
-                        this,
-                        Intent(this, PostureService::class.java)
-                    )
+                    val baselineAngle = call.argument<Double>("baselineAngle") ?: 0.0
+                    val angleThreshold = call.argument<Double>("angleThreshold") ?: 15.0
+
+                    val serviceIntent = Intent(this, PostureService::class.java).apply {
+                        putExtra(PostureService.EXTRA_BASELINE_ANGLE, baselineAngle)
+                        putExtra(PostureService.EXTRA_ANGLE_THRESHOLD, angleThreshold)
+                    }
+
+                    ContextCompat.startForegroundService(this, serviceIntent)
                     result.success(true)
                 }
 
@@ -46,13 +47,28 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
 
-                "getCurrentAngle" -> {
-                    result.success(PostureService.currentAngle)
+                "getCurrentAngle" -> result.success(PostureService.currentAngle)
+                "getBaseline" -> result.success(PostureService.baselineAngle)
+                "isBadPosture" -> result.success(PostureService.isBadPosture())
+                "getState" -> result.success(
+                    if (PostureService.isRunning) "running" else "stopped"
+                )
+
+                // Flutter 화면이 닫혀 있어도 서비스가 누적한 실제 세션 값이다.
+                "getSessionData" -> result.success(PostureService.getSessionData())
+
+                "updateBaseline" -> {
+                    val baselineAngle = call.argument<Double>("baselineAngle")
+                    if (baselineAngle == null) {
+                        result.error("INVALID_ARGUMENT", "baselineAngle is required", null)
+                    } else {
+                        PostureService.baselineAngle = baselineAngle
+                        result.success(true)
+                    }
                 }
 
                 else -> result.notImplemented()
             }
-
         }
     }
 }

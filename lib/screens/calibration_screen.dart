@@ -51,16 +51,12 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
       final baseline = _angles.reduce((a, b) => a + b) / _angles.length;
 
       // 5초 기준 자세가 성공적으로 측정된 순간, 자세 친구를 해금한다.
-      await StorageService.saveInitialPostureProfile(
-        baselineAngle: baseline,
-      );
+      await StorageService.saveInitialPostureProfile(baselineAngle: baseline);
 
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => WorkScreen(baselineAngle: baseline),
-        ),
+        MaterialPageRoute(builder: (_) => WorkScreen(baselineAngle: baseline)),
       );
     });
   }
@@ -85,11 +81,18 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                   children: [
                     Icon(Icons.sensors_off_outlined, size: 72),
                     SizedBox(height: 20),
-                    Text('센서 값을 읽지 못했어요.',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      '센서 값을 읽지 못했어요.',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     SizedBox(height: 10),
-                    Text('휴대폰 위치를 확인한 뒤 다시 시도해주세요.',
-                        textAlign: TextAlign.center),
+                    Text(
+                      '휴대폰 위치를 확인한 뒤 다시 시도해주세요.',
+                      textAlign: TextAlign.center,
+                    ),
                   ],
                 )
               : Column(
@@ -97,13 +100,26 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                   children: [
                     const Icon(Icons.accessibility_new, size: 80),
                     const SizedBox(height: 24),
-                    const Text('바른 자세를 유지해주세요.',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    const Text(
+                      '바른 자세를 유지해주세요.',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    const Text('기준 자세를 측정 중입니다.', style: TextStyle(fontSize: 16)),
+                    const Text(
+                      '기준 자세를 측정 중입니다.',
+                      style: TextStyle(fontSize: 16),
+                    ),
                     const SizedBox(height: 40),
-                    Text('$_count',
-                        style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold)),
+                    Text(
+                      '$_count',
+                      style: const TextStyle(
+                        fontSize: 64,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     const CircularProgressIndicator(),
                   ],

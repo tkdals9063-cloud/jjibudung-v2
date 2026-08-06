@@ -1,9 +1,61 @@
 import 'package:flutter/material.dart';
 
 import 'calibration_screen.dart';
+import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PreparationScreen extends StatelessWidget {
   const PreparationScreen({super.key});
+  Future<bool> _requestNotificationPermission(BuildContext context) async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return true;
+    }
+
+    final currentStatus = await Permission.notification.status;
+
+    if (currentStatus.isGranted) {
+      return true;
+    }
+
+    if (!context.mounted) return false;
+
+    final shouldRequest = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('백그라운드 자세 측정 권한'),
+          content: const Text(
+            '앱을 나가도 자세 측정을 계속하고, '
+            '상단 알림에 측정 시간을 표시하려면 알림 권한이 필요해요.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('나중에'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('권한 허용하기'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldRequest != true) return false;
+
+    final result = await Permission.notification.request();
+
+    if (result.isGranted) return true;
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('알림 권한을 허용하면 백그라운드 측정이 가능해요.')),
+      );
+    }
+
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +150,13 @@ class PreparationScreen extends StatelessWidget {
                       "기준 자세 측정 시작",
                       style: TextStyle(fontSize: 18),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
+                      final allowed = await _requestNotificationPermission(
+                        context,
+                      );
+
+                      if (!allowed || !context.mounted) return;
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(

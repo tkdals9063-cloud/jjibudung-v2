@@ -1,24 +1,46 @@
 import 'package:flutter/material.dart';
 
-import '../screens/stretch_recommendation_screen.dart';
+import '../core/app_tab_controller.dart';
 
 class PostureProfileSummaryCard extends StatelessWidget {
-  const PostureProfileSummaryCard({super.key});
+  final String profileId;
+
+  const PostureProfileSummaryCard({
+    super.key,
+    required this.profileId,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final profile = switch (profileId) {
+      'forward' => _ProfileVisual(
+          code: 'FLS-A',
+          firstEmoji: '🐢',
+          secondEmoji: '🦊',
+          name: '거북목 탐험가 + 앞기울임 여우',
+          subtitle: '추천 스트레칭 보기 →',
+        ),
+      'slouch' => _ProfileVisual(
+          code: 'SSS-P',
+          firstEmoji: '🐻',
+          secondEmoji: '🦔',
+          name: '꾸벅 곰 + 말린 고슴도치',
+          subtitle: '자세 리셋 스트레칭 보기 →',
+        ),
+      _ => _ProfileVisual(
+          code: 'BPS-N',
+          firstEmoji: '🐧',
+          secondEmoji: '🦦',
+          name: '바른자세 펭귄 + 중심 수달',
+          subtitle: '좋은 흐름을 이어가요 →',
+        ),
+    };
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const StretchRecommendationScreen(),
-            ),
-          );
-        },
+        onTap: AppTabController.openStretchTab,
         child: Ink(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -35,13 +57,10 @@ class PostureProfileSummaryCard extends StatelessWidget {
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: const Text('🐢', style: TextStyle(fontSize: 32)),
+                child: Text(profile.firstEmoji, style: const TextStyle(fontSize: 32)),
               ),
               const SizedBox(width: 12),
-              const Text(
-                '+',
-                style: TextStyle(fontSize: 22, color: Color(0xff725AC1)),
-              ),
+              const Text('+', style: TextStyle(fontSize: 22, color: Color(0xff725AC1))),
               const SizedBox(width: 12),
               Container(
                 width: 58,
@@ -51,16 +70,16 @@ class PostureProfileSummaryCard extends StatelessWidget {
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: const Text('🦊', style: TextStyle(fontSize: 32)),
+                child: Text(profile.secondEmoji, style: const TextStyle(fontSize: 32)),
               ),
               const SizedBox(width: 16),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'FLS-A',
-                      style: TextStyle(
+                      profile.code,
+                      style: const TextStyle(
                         color: Color(0xff725AC1),
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -69,13 +88,13 @@ class PostureProfileSummaryCard extends StatelessWidget {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      '거북목 탐험가 + 앞기울임 여우',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      profile.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     SizedBox(height: 3),
                     Text(
-                      '추천 스트레칭 보기 →',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                      profile.subtitle,
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
                     ),
                   ],
                 ),
@@ -86,4 +105,20 @@ class PostureProfileSummaryCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProfileVisual {
+  final String code;
+  final String firstEmoji;
+  final String secondEmoji;
+  final String name;
+  final String subtitle;
+
+  const _ProfileVisual({
+    required this.code,
+    required this.firstEmoji,
+    required this.secondEmoji,
+    required this.name,
+    required this.subtitle,
+  });
 }

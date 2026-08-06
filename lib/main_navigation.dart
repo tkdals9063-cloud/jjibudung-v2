@@ -1,60 +1,46 @@
 import 'package:flutter/material.dart';
 
-import 'screens/welcome_screen.dart';
+import 'core/app_tab_controller.dart';
 import 'screens/played_screen.dart';
+import 'screens/posture_profile_screen.dart';
 import 'screens/reward_screen.dart';
+import 'screens/welcome_screen.dart';
 
-class MainNavigation extends StatefulWidget {
+class MainNavigation extends StatelessWidget {
   const MainNavigation({super.key});
 
-  @override
-  State<MainNavigation> createState() => _MainNavigationState();
-}
-
-class _MainNavigationState extends State<MainNavigation> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const WelcomeScreen(),
-    const PlayedScreen(),
-
-    const Center(child: Text("스트레칭", style: TextStyle(fontSize: 24))),
-
-    const RewardScreen(),
-
-    const Center(child: Text("설정", style: TextStyle(fontSize: 24))),
+  static const List<Widget> _screens = [
+    WelcomeScreen(),
+    PlayedScreen(),
+    PostureProfileScreen(),
+    RewardScreen(),
+    Center(child: Text('설정', style: TextStyle(fontSize: 24))),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
-
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-
-        type: BottomNavigationBarType.fixed,
-
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "홈"),
-
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "통계"),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.accessibility_new),
-            label: "스트레칭",
+    return ValueListenableBuilder<int>(
+      valueListenable: AppTabController.currentIndex,
+      builder: (context, currentIndex, _) {
+        return Scaffold(
+          body: IndexedStack(index: currentIndex, children: _screens),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: currentIndex,
+            onTap: (index) => AppTabController.currentIndex.value = index,
+            type: BottomNavigationBarType.fixed,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+              BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: '통계'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.accessibility_new),
+                label: '스트레칭',
+              ),
+              BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: '상점'),
+              BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
+            ],
           ),
-
-          BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: "상점"),
-
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "설정"),
-        ],
-      ),
+        );
+      },
     );
   }
 }

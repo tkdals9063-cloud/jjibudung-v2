@@ -4,7 +4,9 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 
+#include <chrono>
 #include <memory>
+#include <optional>
 
 #include "win32_window.h"
 
@@ -28,6 +30,12 @@ class FlutterWindow : public Win32Window {
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+
+  // Windows has no standard tilt/accelerometer API, so posture data stays at
+  // stub values, but elapsed session time is tracked for real so the timer
+  // in WorkScreen visibly counts up during desktop testing.
+  bool is_session_running_ = false;
+  std::optional<std::chrono::steady_clock::time_point> session_start_time_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

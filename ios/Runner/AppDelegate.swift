@@ -7,6 +7,14 @@ import CoreMotion
   private let motionManager = CMMotionManager()
   private var currentAngle: Double = 0.0
 
+  private var baselineAngle: Double = 0.0
+  private var angleThreshold: Double = 15.0
+  private var isSessionRunning = false
+  private var sessionStartTime: Date?
+  private var badPostureSeconds: TimeInterval = 0
+  private var lastAccountingTime: Date?
+  private var accountingTimer: Timer?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -27,15 +35,22 @@ import CoreMotion
           result("pong")
 
         case "start":
-          self.startMotionUpdates()
+          let args = call.arguments as? [String: Any]
+          self.startSession(
+            baselineAngle: args?["baselineAngle"] as? Double ?? 0.0,
+            angleThreshold: args?["angleThreshold"] as? Double ?? 15.0
+          )
           result(true)
 
         case "stop":
-          self.motionManager.stopDeviceMotionUpdates()
+          self.stopSession()
           result(true)
 
         case "getCurrentAngle":
           result(self.currentAngle)
+
+        case "getSessionData":
+          result(self.sessionData())
 
         default:
           result(FlutterMethodNotImplemented)
@@ -62,6 +77,80 @@ import CoreMotion
       // Pitch, matching the Android rotation-vector angle calculation.
       self.currentAngle = motion.attitude.pitch * 180 / Double.pi
     }
+  }
+
+  private func isBadPosture() -> Bool {
+    return abs(currentAngle - baselineAngle) > angleThreshold
+  }
+
+  private func accountElapsed() {
+    guard isSessionRunning, let last = lastAccountingTime else { return }
+
+    let now = Date()
+    let elapsed = now.timeIntervalSince(last)
+    if elapsed > 0 && isBadPosture() {
+      badPostureSeconds += elapsed
+    }
+    lastAccountingTime = now
+  }
+
+  private func startSession(baselineAngle: Double, angleThreshold: Double) {
+    self.baselineAngle = baselineAngle
+    self.angleThreshold = angleThreshold
+    self.isSessionRunning = true
+    self.sessionStartTime = Date()
+    self.lastAccountingTime = Date()
+    self.badPostureSeconds = 0
+
+    startMotionUpdates()
+
+    accountingTimer?.invalidate()
+    accountingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+      self?.accountElapsed()
+    }
+  }
+
+  private func stopSession() {
+    accountElapsed()
+    isSessionRunning = false
+    accountingTimer?.invalidate()
+    accountingTimer = nil
+    motionManager.stopDeviceMotionUpdates()
+  }
+
+  private func sessionData() -> [String: Any] {
+    guard let start = sessionStartTime else {
+      return [
+        "totalSeconds": 0,
+        "badSeconds": 0,
+        "goodSeconds": 0,
+        "postureRate": 100.0,
+        "currentAngle": currentAngle,
+        "baselineAngle": baselineAngle,
+        "isBadPosture": false,
+        "isRunning": false,
+      ]
+    }
+
+    accountElapsed()
+
+    let totalSeconds = max(0, Int(Date().timeIntervalSince(start)))
+    let badSeconds = min(totalSeconds, Int(badPostureSeconds))
+    let goodSeconds = max(0, totalSeconds - badSeconds)
+    let postureRate = totalSeconds == 0
+      ? 100.0
+      : Double(goodSeconds) / Double(totalSeconds) * 100.0
+
+    return [
+      "totalSeconds": totalSeconds,
+      "badSeconds": badSeconds,
+      "goodSeconds": goodSeconds,
+      "postureRate": postureRate,
+      "currentAngle": currentAngle,
+      "baselineAngle": baselineAngle,
+      "isBadPosture": isBadPosture(),
+      "isRunning": isSessionRunning,
+    ]
   }
 }
 

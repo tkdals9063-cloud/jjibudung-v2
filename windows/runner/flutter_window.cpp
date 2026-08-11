@@ -40,17 +40,53 @@ bool FlutterWindow::OnCreate() {
       &flutter::StandardMethodCodec::GetInstance());
 
   posture_channel.SetMethodCallHandler(
-      [](const flutter::MethodCall<flutter::EncodableValue>& call,
-         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
-             result) {
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+                 result) {
         const std::string& method = call.method_name();
 
         if (method == "ping") {
           result->Success(flutter::EncodableValue("pong"));
-        } else if (method == "start" || method == "stop") {
+        } else if (method == "start") {
+          is_session_running_ = true;
+          session_start_time_ = std::chrono::steady_clock::now();
+          result->Success(flutter::EncodableValue(true));
+        } else if (method == "stop") {
+          is_session_running_ = false;
           result->Success(flutter::EncodableValue(true));
         } else if (method == "getCurrentAngle") {
           result->Success(flutter::EncodableValue(0.0));
+        } else if (method == "getSessionData") {
+          flutter::EncodableMap session;
+
+          int total_seconds = 0;
+          if (session_start_time_.has_value()) {
+            const auto elapsed = std::chrono::steady_clock::now() -
+                                  session_start_time_.value();
+            total_seconds = static_cast<int>(
+                std::chrono::duration_cast<std::chrono::seconds>(elapsed)
+                    .count());
+            if (total_seconds < 0) total_seconds = 0;
+          }
+
+          session[flutter::EncodableValue("totalSeconds")] =
+              flutter::EncodableValue(total_seconds);
+          session[flutter::EncodableValue("badSeconds")] =
+              flutter::EncodableValue(0);
+          session[flutter::EncodableValue("goodSeconds")] =
+              flutter::EncodableValue(total_seconds);
+          session[flutter::EncodableValue("postureRate")] =
+              flutter::EncodableValue(100.0);
+          session[flutter::EncodableValue("currentAngle")] =
+              flutter::EncodableValue(0.0);
+          session[flutter::EncodableValue("baselineAngle")] =
+              flutter::EncodableValue(0.0);
+          session[flutter::EncodableValue("isBadPosture")] =
+              flutter::EncodableValue(false);
+          session[flutter::EncodableValue("isRunning")] =
+              flutter::EncodableValue(is_session_running_);
+
+          result->Success(flutter::EncodableValue(session));
         } else {
           result->NotImplemented();
         }

@@ -17,6 +17,9 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import kotlin.math.abs
@@ -30,6 +33,9 @@ class PostureService : Service(), SensorEventListener {
         const val EXTRA_BASELINE_ANGLE = "baselineAngle"
         const val EXTRA_ANGLE_THRESHOLD = "angleThreshold"
 
+        // 나쁜 자세가 끊기지 않고 이 시간(30분)을 넘기면 한 번 진동한다.
+        const val VIBRATION_THRESHOLD_MILLIS = 30 * 60 * 1000L
+
         @Volatile var currentAngle = 0.0
         @Volatile var baselineAngle = 0.0
         @Volatile var angleThreshold = 15.0
@@ -38,6 +44,8 @@ class PostureService : Service(), SensorEventListener {
         @Volatile private var sessionStartElapsedMillis = 0L
         @Volatile private var badPostureMillis = 0L
         @Volatile private var lastAccountingMillis = 0L
+        @Volatile private var continuousBadPostureMillis = 0L
+        @Volatile private var hasVibratedForCurrentStreak = false
 
         fun isBadPosture(): Boolean {
             return abs(currentAngle - baselineAngle) > angleThreshold
@@ -85,10 +93,25 @@ class PostureService : Service(), SensorEventListener {
             if (!isRunning || lastAccountingMillis == 0L) return
 
             val elapsed = now - lastAccountingMillis
-            if (elapsed > 0 && isBadPosture()) {
-                badPostureMillis += elapsed
+            if (elapsed > 0) {
+                if (isBadPosture()) {
+                    badPostureMillis += elapsed
+                    continuousBadPostureMillis += elapsed
+                } else {
+                    continuousBadPostureMillis = 0L
+                    hasVibratedForCurrentStreak = false
+                }
             }
             lastAccountingMillis = now
+        }
+
+        // 연속 나쁜 자세가 기준치를 막 넘긴 순간에만 true를 반환한다(한 스트릭당 한 번).
+        fun consumeVibrationTrigger(): Boolean {
+            if (hasVibratedForCurrentStreak) return false
+            if (continuousBadPostureMillis < VIBRATION_THRESHOLD_MILLIS) return false
+
+            hasVibratedForCurrentStreak = true
+            return true
         }
     }
 
@@ -101,7 +124,38 @@ class PostureService : Service(), SensorEventListener {
     private val accountingTicker = object : Runnable {
         override fun run() {
             accountElapsed(SystemClock.elapsedRealtime())
+            if (consumeVibrationTrigger()) {
+                vibrate()
+            }
             handler.postDelayed(this, 1000)
+        }
+    }
+
+    private fun isVibrationEnabled(): Boolean {
+        // shared_preferences 플러그인은 안드로이드에서 "FlutterSharedPreferences" 파일에
+        // "flutter." 접두사가 붙은 키로 값을 저장한다.
+        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        return prefs.getBoolean("flutter.vibration_enabled", true)
+    }
+
+    private fun vibrate() {
+        if (!isVibrationEnabled()) return
+
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            manager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(500)
         }
     }
 override fun onCreate() {
@@ -121,6 +175,8 @@ override fun onCreate() {
             sessionStartElapsedMillis = now
             lastAccountingMillis = now
             badPostureMillis = 0L
+            continuousBadPostureMillis = 0L
+            hasVibratedForCurrentStreak = false
             isRunning = true
 
             rotationSensor?.let {

@@ -16,6 +16,8 @@ class StorageService {
       'has_initial_posture_profile';
   static const String initialBaselineAngleKey = 'initial_baseline_angle';
   static const String postureProfileIdKey = 'posture_profile_id';
+  static const String vibrationEnabledKey = 'vibration_enabled';
+  static const String pushNotificationEnabledKey = 'push_notification_enabled';
 
   static String _dateKey(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}-'
@@ -182,5 +184,25 @@ class StorageService {
   static Future<int> loadTotalGoodPostureTime() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(totalGoodPostureTimeKey) ?? 0;
+  }
+
+  static Future<bool> loadVibrationEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(vibrationEnabledKey) ?? true;
+  }
+
+  static Future<void> saveVibrationEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(vibrationEnabledKey, enabled);
+  }
+
+  static Future<bool> loadPushNotificationEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(pushNotificationEnabledKey) ?? true;
+  }
+
+  static Future<void> savePushNotificationEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(pushNotificationEnabledKey, enabled);
   }
 }

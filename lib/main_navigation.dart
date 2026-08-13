@@ -4,6 +4,7 @@ import 'core/app_tab_controller.dart';
 import 'screens/played_screen.dart';
 import 'screens/posture_profile_screen.dart';
 import 'screens/reward_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/welcome_screen.dart';
 
 class MainNavigation extends StatelessWidget {
@@ -14,7 +15,7 @@ class MainNavigation extends StatelessWidget {
     PlayedScreen(),
     PostureProfileScreen(),
     RewardScreen(),
-    Center(child: Text('설정', style: TextStyle(fontSize: 24))),
+    SettingsScreen(),
   ];
 
   @override

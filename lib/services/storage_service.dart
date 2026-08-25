@@ -19,6 +19,12 @@ class StorageService {
   static const String postureProfileIdKey = 'posture_profile_id';
   static const String vibrationEnabledKey = 'vibration_enabled';
   static const String pushNotificationEnabledKey = 'push_notification_enabled';
+  static const String todayStretchRoutineCountKey =
+      'today_stretch_routine_count';
+  static const String stretchRoutineDateKey = 'stretch_routine_date';
+
+  static const int phoneDailyStretchLimit = 1;
+  static const int stretchRoutinePoint = 10;
 
   static String _dateKey(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}-'
@@ -31,7 +37,6 @@ class StorageService {
     String todayKey,
   ) async {
     final dates = prefs.getStringList(weekUsageDatesKey) ?? <String>[];
-
     if (!dates.contains(todayKey)) {
       dates.add(todayKey);
     }
@@ -41,7 +46,6 @@ class StorageService {
       final date = DateTime.tryParse(value);
       return date == null || date.isBefore(limit);
     });
-
     await prefs.setStringList(weekUsageDatesKey, dates);
   }
 
@@ -51,7 +55,9 @@ class StorageService {
     required int earnedPoint,
     required double postureRate,
   }) async {
-    if (studySeconds <= 0) return;
+    if (studySeconds <= 0) {
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
@@ -66,7 +72,6 @@ class StorageService {
       final last = lastStudyDate == null
           ? null
           : DateTime.tryParse(lastStudyDate);
-
       if (last == null) {
         streak = 1;
       } else if (DateTime(
@@ -84,17 +89,23 @@ class StorageService {
       await prefs.setString(lastStudyDateKey, todayKey);
     }
 
-    final todayStudy = prefs.getInt(todayStudyTimeKey) ?? 0;
-    final todayGood = prefs.getInt(todayGoodPostureTimeKey) ?? 0;
-    final totalStudy = prefs.getInt(totalStudyTimeKey) ?? 0;
-    final totalGood = prefs.getInt(totalGoodPostureTimeKey) ?? 0;
-    final point = prefs.getInt(pointKey) ?? 0;
-
-    await prefs.setInt(todayStudyTimeKey, todayStudy + studySeconds);
-    await prefs.setInt(todayGoodPostureTimeKey, todayGood + goodPostureSeconds);
-    await prefs.setInt(totalStudyTimeKey, totalStudy + studySeconds);
-    await prefs.setInt(totalGoodPostureTimeKey, totalGood + goodPostureSeconds);
-    await prefs.setInt(pointKey, point + earnedPoint);
+    await prefs.setInt(
+      todayStudyTimeKey,
+      (prefs.getInt(todayStudyTimeKey) ?? 0) + studySeconds,
+    );
+    await prefs.setInt(
+      todayGoodPostureTimeKey,
+      (prefs.getInt(todayGoodPostureTimeKey) ?? 0) + goodPostureSeconds,
+    );
+    await prefs.setInt(
+      totalStudyTimeKey,
+      (prefs.getInt(totalStudyTimeKey) ?? 0) + studySeconds,
+    );
+    await prefs.setInt(
+      totalGoodPostureTimeKey,
+      (prefs.getInt(totalGoodPostureTimeKey) ?? 0) + goodPostureSeconds,
+    );
+    await prefs.setInt(pointKey, (prefs.getInt(pointKey) ?? 0) + earnedPoint);
     await prefs.setDouble(postureRateKey, postureRate);
     await _saveUsageDate(prefs, todayKey);
   }
@@ -115,14 +126,11 @@ class StorageService {
     });
   }
 
-  // 기준 자세 측정이 끝나면 자세 친구를 해금한다.
-  // 사용자는 이 순간 바른 자세로 앉아 있으므로 초기 타입은 균형형으로 둔다.
   static Future<void> saveInitialPostureProfile({
     required double baselineAngle,
     required double baselineRoll,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-
     await prefs.setBool(hasInitialPostureProfileKey, true);
     await prefs.setDouble(initialBaselineAngleKey, baselineAngle);
     await prefs.setDouble(initialBaselineRollKey, baselineRoll);
@@ -134,8 +142,6 @@ class StorageService {
     return prefs.getBool(hasInitialPostureProfileKey) ?? false;
   }
 
-  // 현재 센서는 기준 자세에서 벗어난 빈도를 측정한다.
-  // 따라서 의학적 진단이 아니라 앱 안의 '자세 친구' 표시용 경향값이다.
   static Future<void> updatePostureProfileFromRate({
     required double postureRate,
   }) async {
@@ -153,15 +159,50 @@ class StorageService {
     return prefs.getString(postureProfileIdKey) ?? 'balanced';
   }
 
+  /// 오늘 완료한 휴대폰 스트레칭 루틴 수. 날짜가 다르면 0회다.
+  static Future<int> loadTodayStretchRoutineCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(stretchRoutineDateKey) != _dateKey(DateTime.now())) {
+      return 0;
+    }
+    return prefs.getInt(todayStretchRoutineCountKey) ?? 0;
+  }
+
+  /// 루틴 전체를 끝냈을 때만 호출한다. 제한을 넘으면 false를 반환한다.
+  static Future<bool> completePhoneStretchRoutine() async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayKey = _dateKey(DateTime.now());
+    var completed = prefs.getString(stretchRoutineDateKey) == todayKey
+        ? prefs.getInt(todayStretchRoutineCountKey) ?? 0
+        : 0;
+
+    if (completed >= phoneDailyStretchLimit) {
+      return false;
+    }
+
+    completed++;
+    await prefs.setString(stretchRoutineDateKey, todayKey);
+    await prefs.setInt(todayStretchRoutineCountKey, completed);
+    await prefs.setInt(
+      pointKey,
+      (prefs.getInt(pointKey) ?? 0) + stretchRoutinePoint,
+    );
+    return true;
+  }
+
   static Future<int> loadTodayStudyTime() async {
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(lastStudyDateKey) != _dateKey(DateTime.now())) return 0;
+    if (prefs.getString(lastStudyDateKey) != _dateKey(DateTime.now())) {
+      return 0;
+    }
     return prefs.getInt(todayStudyTimeKey) ?? 0;
   }
 
   static Future<int> loadTodayGoodPostureTime() async {
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(lastStudyDateKey) != _dateKey(DateTime.now())) return 0;
+    if (prefs.getString(lastStudyDateKey) != _dateKey(DateTime.now())) {
+      return 0;
+    }
     return prefs.getInt(todayGoodPostureTimeKey) ?? 0;
   }
 

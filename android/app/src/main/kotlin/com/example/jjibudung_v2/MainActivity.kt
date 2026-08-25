@@ -19,24 +19,45 @@ class MainActivity : FlutterActivity() {
 
         EventChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            STREAM_CHANNEL
+            STREAM_CHANNEL,
         ).setStreamHandler(PostureStreamHandler(this))
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            CHANNEL
+            CHANNEL,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "ping" -> result.success("pong")
 
                 "start" -> {
-                    val baselineAngle = call.argument<Double>("baselineAngle") ?: 0.0
-                    val angleThreshold = call.argument<Double>("angleThreshold") ?: 15.0
+                    val baselinePitch =
+                        call.argument<Double>("baselinePitch") ?: 0.0
+                    val baselineRoll =
+                        call.argument<Double>("baselineRoll") ?: 0.0
+                    val pitchThreshold =
+                        call.argument<Double>("pitchThreshold") ?: 15.0
+                    val rollThreshold =
+                        call.argument<Double>("rollThreshold") ?: 10.0
 
-                    val serviceIntent = Intent(this, PostureService::class.java).apply {
-                        putExtra(PostureService.EXTRA_BASELINE_ANGLE, baselineAngle)
-                        putExtra(PostureService.EXTRA_ANGLE_THRESHOLD, angleThreshold)
-                    }
+                    val serviceIntent =
+                        Intent(this, PostureService::class.java).apply {
+                            putExtra(
+                                PostureService.EXTRA_BASELINE_PITCH,
+                                baselinePitch,
+                            )
+                            putExtra(
+                                PostureService.EXTRA_BASELINE_ROLL,
+                                baselineRoll,
+                            )
+                            putExtra(
+                                PostureService.EXTRA_PITCH_THRESHOLD,
+                                pitchThreshold,
+                            )
+                            putExtra(
+                                PostureService.EXTRA_ROLL_THRESHOLD,
+                                rollThreshold,
+                            )
+                        }
 
                     ContextCompat.startForegroundService(this, serviceIntent)
                     result.success(true)
@@ -47,22 +68,35 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
 
-                "getCurrentAngle" -> result.success(PostureService.currentAngle)
-                "getBaseline" -> result.success(PostureService.baselineAngle)
+                "getCurrentAngle" -> result.success(PostureService.currentPitch)
+                "getCurrentRoll" -> result.success(PostureService.currentRoll)
+                "getBaseline" -> result.success(PostureService.baselinePitch)
+                "getBaselineRoll" -> result.success(PostureService.baselineRoll)
                 "isBadPosture" -> result.success(PostureService.isBadPosture())
+
                 "getState" -> result.success(
-                    if (PostureService.isRunning) "running" else "stopped"
+                    if (PostureService.isRunning) "running" else "stopped",
                 )
 
-                // Flutter 화면이 닫혀 있어도 서비스가 누적한 실제 세션 값이다.
-                "getSessionData" -> result.success(PostureService.getSessionData())
+                "getSessionData" -> {
+                    result.success(PostureService.getSessionData())
+                }
 
                 "updateBaseline" -> {
-                    val baselineAngle = call.argument<Double>("baselineAngle")
-                    if (baselineAngle == null) {
-                        result.error("INVALID_ARGUMENT", "baselineAngle is required", null)
+                    val baselinePitch =
+                        call.argument<Double>("baselinePitch")
+                    val baselineRoll =
+                        call.argument<Double>("baselineRoll")
+
+                    if (baselinePitch == null || baselineRoll == null) {
+                        result.error(
+                            "INVALID_ARGUMENT",
+                            "baselinePitch and baselineRoll are required",
+                            null,
+                        )
                     } else {
-                        PostureService.baselineAngle = baselineAngle
+                        PostureService.baselinePitch = baselinePitch
+                        PostureService.baselineRoll = baselineRoll
                         result.success(true)
                     }
                 }

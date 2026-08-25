@@ -15,6 +15,7 @@ class StorageService {
   static const String hasInitialPostureProfileKey =
       'has_initial_posture_profile';
   static const String initialBaselineAngleKey = 'initial_baseline_angle';
+  static const String initialBaselineRollKey = 'initial_baseline_roll';
   static const String postureProfileIdKey = 'posture_profile_id';
   static const String vibrationEnabledKey = 'vibration_enabled';
   static const String pushNotificationEnabledKey = 'push_notification_enabled';
@@ -118,10 +119,13 @@ class StorageService {
   // 사용자는 이 순간 바른 자세로 앉아 있으므로 초기 타입은 균형형으로 둔다.
   static Future<void> saveInitialPostureProfile({
     required double baselineAngle,
+    required double baselineRoll,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
     await prefs.setBool(hasInitialPostureProfileKey, true);
     await prefs.setDouble(initialBaselineAngleKey, baselineAngle);
+    await prefs.setDouble(initialBaselineRollKey, baselineRoll);
     await prefs.setString(postureProfileIdKey, 'balanced');
   }
 

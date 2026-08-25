@@ -11,33 +11,51 @@ enum PostureServiceState {
   error,
 }
 
+class PostureAngles {
+  final double pitch;
+  final double roll;
+
+  const PostureAngles({required this.pitch, required this.roll});
+
+  factory PostureAngles.fromEvent(dynamic event) {
+    if (event is Map) {
+      return PostureAngles(
+        pitch: (event['pitch'] as num?)?.toDouble() ?? 0.0,
+        roll: (event['roll'] as num?)?.toDouble() ?? 0.0,
+      );
+    }
+
+    return PostureAngles(pitch: (event as num).toDouble(), roll: 0.0);
+  }
+}
+
 class NativePostureService {
   NativePostureService._();
 
   static const MethodChannel _channel = MethodChannel(
-    "jjibudung/posture_service",
+    'jjibudung/posture_service',
   );
 
   static const EventChannel _eventChannel = EventChannel(
-    "jjibudung/posture_stream",
+    'jjibudung/posture_stream',
   );
 
-  static Stream<double> get angleStream => _eventChannel
-      .receiveBroadcastStream()
-      .map((event) => (event as num).toDouble());
-
-  // ===========================================================
-  // Foreground Service 시작
-  // ===========================================================
+  static Stream<PostureAngles> get angleStream {
+    return _eventChannel.receiveBroadcastStream().map(PostureAngles.fromEvent);
+  }
 
   static Future<bool> start({
-    required double baselineAngle,
-    required double angleThreshold,
+    required double baselinePitch,
+    required double baselineRoll,
+    required double pitchThreshold,
+    required double rollThreshold,
   }) async {
     try {
-      final result = await _channel.invokeMethod<bool>("start", {
-        "baselineAngle": baselineAngle,
-        "angleThreshold": angleThreshold,
+      final result = await _channel.invokeMethod<bool>('start', {
+        'baselinePitch': baselinePitch,
+        'baselineRoll': baselineRoll,
+        'pitchThreshold': pitchThreshold,
+        'rollThreshold': rollThreshold,
       });
 
       return result ?? false;
@@ -45,155 +63,97 @@ class NativePostureService {
       return false;
     }
   }
-
-  // ===========================================================
-  // Foreground Service 종료
-  // ===========================================================
 
   static Future<bool> stop() async {
     try {
-      final result = await _channel.invokeMethod<bool>("stop");
-
-      return result ?? false;
+      return await _channel.invokeMethod<bool>('stop') ?? false;
     } on PlatformException {
       return false;
     }
   }
-
-  // ===========================================================
-  // 일시정지
-  // ===========================================================
 
   static Future<bool> pause() async {
     try {
-      final result = await _channel.invokeMethod<bool>("pause");
-
-      return result ?? false;
+      return await _channel.invokeMethod<bool>('pause') ?? false;
     } on PlatformException {
       return false;
     }
   }
-
-  // ===========================================================
-  // 다시 시작
-  // ===========================================================
 
   static Future<bool> resume() async {
     try {
-      final result = await _channel.invokeMethod<bool>("resume");
-
-      return result ?? false;
+      return await _channel.invokeMethod<bool>('resume') ?? false;
     } on PlatformException {
       return false;
     }
   }
 
-  // ===========================================================
-  // 기준각 변경
-  // ===========================================================
-
-  static Future<bool> updateBaseline(double baselineAngle) async {
+  static Future<bool> updateBaseline({
+    required double baselinePitch,
+    required double baselineRoll,
+  }) async {
     try {
-      final result = await _channel.invokeMethod<bool>("updateBaseline", {
-        "baselineAngle": baselineAngle,
-      });
-
-      return result ?? false;
+      return await _channel.invokeMethod<bool>('updateBaseline', {
+            'baselinePitch': baselinePitch,
+            'baselineRoll': baselineRoll,
+          }) ??
+          false;
     } on PlatformException {
       return false;
     }
   }
-
-  // ===========================================================
-  // 현재 서비스 상태
-  // ===========================================================
 
   static Future<PostureServiceState> getState() async {
     try {
-      final result = await _channel.invokeMethod<String>("getState");
+      final state = await _channel.invokeMethod<String>('getState');
 
-      switch (result) {
-        case "running":
-          return PostureServiceState.running;
-
-        case "paused":
-          return PostureServiceState.paused;
-
-        default:
-          return PostureServiceState.stopped;
-      }
+      return state == 'running'
+          ? PostureServiceState.running
+          : state == 'paused'
+          ? PostureServiceState.paused
+          : PostureServiceState.stopped;
     } on PlatformException {
       return PostureServiceState.stopped;
     }
   }
 
-  // ===========================================================
-  // 현재 기준각
-  // ===========================================================
+  static Future<double> getCurrentAngle() async {
+    try {
+      return await _channel.invokeMethod<double>('getCurrentAngle') ?? 0.0;
+    } on PlatformException {
+      return 0.0;
+    }
+  }
 
   static Future<double> getBaseline() async {
     try {
-      final result = await _channel.invokeMethod<double>("getBaseline");
-
-      return result ?? 0.0;
+      return await _channel.invokeMethod<double>('getBaseline') ?? 0.0;
     } on PlatformException {
       return 0.0;
     }
   }
-
-  // ===========================================================
-  // 현재 자세각
-  // ===========================================================
-
-  static Future<double> getCurrentAngle() async {
-    try {
-      final result = await _channel.invokeMethod<double>("getCurrentAngle");
-
-      return result ?? 0.0;
-    } on PlatformException {
-      return 0.0;
-    }
-  }
-
-  // ===========================================================
-  // 현재 나쁜 자세 여부
-  // ===========================================================
 
   static Future<bool> isBadPosture() async {
     try {
-      final result = await _channel.invokeMethod<bool>("isBadPosture");
-
-      return result ?? false;
+      return await _channel.invokeMethod<bool>('isBadPosture') ?? false;
     } on PlatformException {
       return false;
     }
   }
 
-  // ===========================================================
-  // 현재 누적 데이터
-  // ===========================================================
-
   static Future<Map<dynamic, dynamic>?> getSessionData() async {
     try {
-      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-        "getSessionData",
+      return await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'getSessionData',
       );
-
-      return result;
     } on PlatformException {
       return null;
     }
   }
 
-  // ===========================================================
-  // 서비스 연결 테스트
-  // ===========================================================
-
   static Future<bool> ping() async {
     try {
-      final result = await _channel.invokeMethod<String>("ping");
-
-      return result == "pong";
+      return await _channel.invokeMethod<String>('ping') == 'pong';
     } on PlatformException {
       return false;
     }

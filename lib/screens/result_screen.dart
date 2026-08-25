@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../core/app_tab_controller.dart';
 import '../main_navigation.dart';
 import '../utils/formatter.dart';
 
@@ -92,7 +94,13 @@ class ResultScreen extends StatelessWidget {
               height: 55,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: StretchScreen 이동
+                  AppTabController.currentIndex.value = 2;
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MainNavigation()),
+                    (route) => false,
+                  );
                 },
                 icon: const Icon(Icons.self_improvement),
                 label: const Text("스트레칭 하기"),

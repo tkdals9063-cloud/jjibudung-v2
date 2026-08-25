@@ -18,8 +18,9 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
   int _count = calibrationSeconds;
   Timer? _timer;
-  StreamSubscription<double>? _angleSubscription;
-  final List<double> _angles = [];
+  StreamSubscription<PostureAngles>? _angleSubscription;
+  final List<double> _pitches = [];
+  final List<double> _rolls = [];
   bool _hasSensorError = false;
 
   @override
@@ -30,8 +31,13 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
   Future<void> _startCalibration() async {
     _angleSubscription = NativePostureService.angleStream.listen(
-      _angles.add,
-      onError: (_) => setState(() => _hasSensorError = true),
+      (angles) {
+        _pitches.add(angles.pitch);
+        _rolls.add(angles.roll);
+      },
+      onError: (_) {
+        if (mounted) setState(() => _hasSensorError = true);
+      },
     );
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
@@ -43,20 +49,28 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
       timer.cancel();
       await _angleSubscription?.cancel();
 
-      if (_angles.isEmpty) {
+      if (_pitches.isEmpty || _rolls.isEmpty) {
         if (mounted) setState(() => _hasSensorError = true);
         return;
       }
 
-      final baseline = _angles.reduce((a, b) => a + b) / _angles.length;
+      final baselinePitch = _pitches.reduce((a, b) => a + b) / _pitches.length;
+      final baselineRoll = _rolls.reduce((a, b) => a + b) / _rolls.length;
 
-      // 5초 기준 자세가 성공적으로 측정된 순간, 자세 친구를 해금한다.
-      await StorageService.saveInitialPostureProfile(baselineAngle: baseline);
+      await StorageService.saveInitialPostureProfile(
+        baselineAngle: baselinePitch,
+        baselineRoll: baselineRoll,
+      );
 
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => WorkScreen(baselineAngle: baseline)),
+        MaterialPageRoute(
+          builder: (_) => WorkScreen(
+            baselinePitch: baselinePitch,
+            baselineRoll: baselineRoll,
+          ),
+        ),
       );
     });
   }
@@ -109,7 +123,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      '기준 자세를 측정 중입니다.',
+                      '앞뒤와 좌우 기준 자세를 측정 중입니다.',
                       style: TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 40),

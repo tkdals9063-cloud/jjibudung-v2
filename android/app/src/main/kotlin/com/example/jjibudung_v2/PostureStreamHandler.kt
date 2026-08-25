@@ -7,11 +7,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import io.flutter.plugin.common.EventChannel
 
-// Registers its own rotation-vector listener (same calculation as
-// PostureService) so calibration gets live readings without needing the
-// foreground service to be running yet.
 class PostureStreamHandler(
-    context: Context
+    context: Context,
 ) : EventChannel.StreamHandler, SensorEventListener {
 
     private val sensorManager =
@@ -27,49 +24,47 @@ class PostureStreamHandler(
 
     override fun onListen(
         arguments: Any?,
-        events: EventChannel.EventSink?
+        events: EventChannel.EventSink?,
     ) {
-
         eventSink = events
 
         rotationSensor?.let {
             sensorManager.registerListener(
                 this,
                 it,
-                SensorManager.SENSOR_DELAY_GAME
+                SensorManager.SENSOR_DELAY_GAME,
             )
         }
     }
 
     override fun onCancel(arguments: Any?) {
-
         sensorManager.unregisterListener(this)
-
         eventSink = null
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-
-        if (event == null) return
-
-        if (event.sensor.type != Sensor.TYPE_ROTATION_VECTOR) return
+        if (event?.sensor?.type != Sensor.TYPE_ROTATION_VECTOR) return
 
         SensorManager.getRotationMatrixFromVector(
             rotationMatrix,
-            event.values
+            event.values,
         )
 
         SensorManager.getOrientation(
             rotationMatrix,
-            orientation
+            orientation,
         )
 
         val pitch = Math.toDegrees(orientation[1].toDouble())
+        val roll = Math.toDegrees(orientation[2].toDouble())
 
-        eventSink?.success(pitch)
+        eventSink?.success(
+            mapOf(
+                "pitch" to pitch,
+                "roll" to roll,
+            ),
+        )
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // 사용하지 않음
-    }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 }

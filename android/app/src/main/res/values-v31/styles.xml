@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ native splash. No AndroidX dependency is needed. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">#725AC1</item>
+        <item name="android:windowSplashScreenBackground">#725AC1</item>
+        <!-- Use the real launcher icon instead of the temporary stick figure. -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/android12splash</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#725AC1</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

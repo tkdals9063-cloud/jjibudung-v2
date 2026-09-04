@@ -1,0 +1,6 @@
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/splash_stretch_vector">
+    <target
+        android:name="stretch_group"
+        android:animation="@animator/splash_stretch_sway" />
+</animated-vector>

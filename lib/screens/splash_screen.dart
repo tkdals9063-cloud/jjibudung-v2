@@ -21,7 +21,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _openNextScreen() async {
-    // 스플래시 화면을 잠시 보여 주는 동안 최초 실행 여부를 불러온다.
     await Future<void>.delayed(const Duration(seconds: 2));
     final prefs = await SharedPreferences.getInstance();
     final hasSeenOnboarding = prefs.getBool(_hasSeenOnboardingKey) ?? false;
@@ -72,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: 18),
                 const Text(
-                  '오늘도 바른 자세로,\n더 오래 집중하세요.',
+                  '오늘도 바른 자세로,\n몸을 가볍게 풀어보세요.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,

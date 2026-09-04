@@ -1,0 +1,44 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <group
+        android:name="stretch_group"
+        android:pivotX="60"
+        android:pivotY="60"
+        android:scaleX="0.62"
+        android:scaleY="0.62">
+
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M60,16 C53.4,16 48,21.4 48,28 C48,34.6 53.4,40 60,40 C66.6,40 72,34.6 72,28 C72,21.4 66.6,16 60,16 Z" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="9"
+            android:pathData="M58,43 C52,55 55,67 51,78" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="8"
+            android:pathData="M57,47 C48,43 42,35 45,28 C48,21 56,20 64,25 C70,29 74,34 77,39" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeWidth="9"
+            android:pathData="M51,78 L36,104 M51,78 L68,104" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeWidth="5"
+            android:pathData="M82,51 L92,46 M84,60 L95,60 M82,69 L92,74" />
+    </group>
+</vector>

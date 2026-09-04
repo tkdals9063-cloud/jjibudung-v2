@@ -31,8 +31,9 @@ class PostureProfileSummaryCard extends StatelessWidget {
           code: 'BPS-N',
           firstEmoji: '🐧',
           secondEmoji: '🦦',
-          name: '바른자세 펭귄 + 중심 수달',
-          subtitle: '좋은 흐름을 이어가요 →',
+          name: '바른자세 탐험가 + 중심 펭귄',
+          subtitle: '내 자세 친구들 보기 →',
+          imagePath: 'assets/characters/profile_balanced_penguin.png',
         ),
     };
 
@@ -49,29 +50,37 @@ class PostureProfileSummaryCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 58,
-                height: 58,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
+              if (profile.imagePath != null)
+                SizedBox(
+                  width: 104,
+                  height: 74,
+                  child: Image.asset(profile.imagePath!, fit: BoxFit.contain),
+                )
+              else ...[
+                Container(
+                  width: 58,
+                  height: 58,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(profile.firstEmoji, style: const TextStyle(fontSize: 32)),
                 ),
-                child: Text(profile.firstEmoji, style: const TextStyle(fontSize: 32)),
-              ),
-              const SizedBox(width: 12),
-              const Text('+', style: TextStyle(fontSize: 22, color: Color(0xff725AC1))),
-              const SizedBox(width: 12),
-              Container(
-                width: 58,
-                height: 58,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
+                const SizedBox(width: 12),
+                const Text('+', style: TextStyle(fontSize: 22, color: Color(0xff725AC1))),
+                const SizedBox(width: 12),
+                Container(
+                  width: 58,
+                  height: 58,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(profile.secondEmoji, style: const TextStyle(fontSize: 32)),
                 ),
-                child: Text(profile.secondEmoji, style: const TextStyle(fontSize: 32)),
-              ),
+              ],
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -113,6 +122,7 @@ class _ProfileVisual {
   final String secondEmoji;
   final String name;
   final String subtitle;
+  final String? imagePath;
 
   const _ProfileVisual({
     required this.code,
@@ -120,5 +130,6 @@ class _ProfileVisual {
     required this.secondEmoji,
     required this.name,
     required this.subtitle,
+    this.imagePath,
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../services/point_manager.dart';
+import '../services/storage_service.dart';
 
 class RewardItem {
   final String brand;
@@ -71,8 +72,6 @@ class RewardScreen extends StatefulWidget {
 }
 
 class _RewardScreenState extends State<RewardScreen> {
-  final PointManager _pointManager = PointManager();
-
   int _currentPoints = 0;
 
   @override
@@ -82,7 +81,7 @@ class _RewardScreenState extends State<RewardScreen> {
   }
 
   Future<void> _loadPoints() async {
-    final points = await _pointManager.getPoints();
+    final points = await StorageService.loadPoint();
     if (!mounted) return;
     setState(() => _currentPoints = points);
   }
@@ -118,7 +117,17 @@ class _RewardScreenState extends State<RewardScreen> {
 
     if (confirmed != true) return;
 
-    await _pointManager.usePoints(item.requiredPoints);
+    try {
+      await StorageService.spendPoints(item.requiredPoints);
+    } on PostgrestException {
+      await _loadPoints();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('포인트가 부족해요.')),
+      );
+      return;
+    }
+
     await _loadPoints();
 
     if (!mounted) return;

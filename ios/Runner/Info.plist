@@ -49,5 +49,16 @@
 		<string>작업 중 자세(기기 기울기)를 측정하기 위해 모션 센서를 사용합니다.</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLName</key>
+				<string>supabase-auth-callback</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>jjibudung</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import '../services/storage_service.dart';
 
@@ -15,6 +16,26 @@ class StretchRecommendationScreen extends StatefulWidget {
       _StretchRecommendationScreenState();
 }
 
+class _StretchProfilePortrait extends StatelessWidget {
+  final String profileId;
+
+  const _StretchProfilePortrait({required this.profileId});
+
+  @override
+  Widget build(BuildContext context) {
+    final imagePath = switch (profileId) {
+      'forward' => 'assets/characters/avatar_forward_fox.png',
+      'slouch' => 'assets/characters/avatar_rested_hedgehog.png',
+      'tilted' => 'assets/characters/avatar_tilted_panda.png',
+      _ => 'assets/characters/avatar_balanced_penguin.png',
+    };
+
+    return SizedBox(
+      height: 120,
+      child: Image.asset(imagePath, fit: BoxFit.contain),
+    );
+  }
+}
 class _StretchRecommendationScreenState
     extends State<StretchRecommendationScreen> {
   int? _completedToday;
@@ -43,7 +64,10 @@ class _StretchRecommendationScreenState
     final completed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => CorrectiveRoutineScreen(routine: _routine),
+        builder: (_) => CorrectiveRoutineScreen(
+          routine: _routine,
+          profileId: widget.profileId,
+        ),
       ),
     );
 
@@ -97,6 +121,7 @@ class _StretchRecommendationScreenState
   @override
   Widget build(BuildContext context) {
     final completedToday = _completedToday;
+    final isBalancedRoutine = widget.profileId == 'balanced';
     final isLimitReached =
         (completedToday ?? 0) >= StorageService.phoneDailyStretchLimit;
 
@@ -110,32 +135,33 @@ class _StretchRecommendationScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xffF5F1FF),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            _routine.emoji,
-                            style: const TextStyle(fontSize: 48),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            _routine.message,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              height: 1.5,
-                              fontWeight: FontWeight.w600,
+                    if (!isBalancedRoutine) ...[
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffF5F1FF),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Column(
+                          children: [
+                            _StretchProfilePortrait(
+                              profileId: widget.profileId,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 10),
+                            Text(
+                              _routine.message,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                height: 1.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 22),
+                      const SizedBox(height: 22),
+                    ],
                     const Text(
                       '오늘의 랜덤 교정 루틴',
                       style: TextStyle(
@@ -520,8 +546,13 @@ class _PickerLabel extends StatelessWidget {
 
 class CorrectiveRoutineScreen extends StatefulWidget {
   final CorrectiveRoutine routine;
+  final String profileId;
 
-  const CorrectiveRoutineScreen({super.key, required this.routine});
+  const CorrectiveRoutineScreen({
+    super.key,
+    required this.routine,
+    required this.profileId,
+  });
 
   @override
   State<CorrectiveRoutineScreen> createState() =>
@@ -540,8 +571,13 @@ class _CorrectiveRoutineScreenState extends State<CorrectiveRoutineScreen>
   bool _isRunning = false;
   bool _isResting = false;
   bool _isCompleted = false;
+  _QuadricepsMotionPhase _quadricepsPhase = _QuadricepsMotionPhase.neutral;
 
   CorrectiveMove get _move => widget.routine.moves[_moveIndex];
+
+  bool get _isTimedQuadricepsMove =>
+      _move.animation == FigureAnimation.hipFlexor &&
+      widget.profileId == 'balanced';
 
   @override
   void initState() {
@@ -567,6 +603,9 @@ class _CorrectiveRoutineScreenState extends State<CorrectiveRoutineScreen>
       _countdown = 0;
       _secondsLeft = _move.seconds;
       _isRunning = true;
+      _quadricepsPhase = _isTimedQuadricepsMove
+          ? _QuadricepsMotionPhase.raising
+          : _QuadricepsMotionPhase.neutral;
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -576,6 +615,7 @@ class _CorrectiveRoutineScreenState extends State<CorrectiveRoutineScreen>
         setState(() {
           _secondsLeft = 0;
           _isRunning = false;
+          _quadricepsPhase = _QuadricepsMotionPhase.neutral;
         });
         _finishSet();
       } else {
@@ -611,6 +651,7 @@ class _CorrectiveRoutineScreenState extends State<CorrectiveRoutineScreen>
         _moveIndex++;
         _currentSet = 1;
         _secondsLeft = _move.seconds;
+        _quadricepsPhase = _QuadricepsMotionPhase.neutral;
       });
       return;
     }
@@ -730,6 +771,8 @@ class _CorrectiveRoutineScreenState extends State<CorrectiveRoutineScreen>
                   child: _SmoothExerciseGuide(
                     controller: _guideController,
                     move: _move,
+                    profileId: widget.profileId,
+                    quadricepsPhase: _quadricepsPhase,
                   ),
                 ),
                 if (_countdown > 0)
@@ -883,13 +926,21 @@ String _guideAssetPath(FigureAnimation animation) {
 class _SmoothExerciseGuide extends StatelessWidget {
   final AnimationController controller;
   final CorrectiveMove move;
+  final String profileId;
+  final _QuadricepsMotionPhase quadricepsPhase;
 
-  const _SmoothExerciseGuide({required this.controller, required this.move});
+  const _SmoothExerciseGuide({
+    required this.controller,
+    required this.move,
+    required this.profileId,
+    required this.quadricepsPhase,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (move.animation == FigureAnimation.hipFlexor) {
-      return const _FrameSequenceGuide();
+    if (move.animation == FigureAnimation.hipFlexor &&
+        profileId == 'balanced') {
+      return _TimedQuadricepsGuide(phase: quadricepsPhase);
     }
 
     final assetPath = _guideAssetPath(move.animation);
@@ -936,6 +987,517 @@ class _SmoothExerciseGuide extends StatelessWidget {
   }
 }
 
+enum _QuadricepsMotionPhase { neutral, raising }
+
+/// Plays the approved raise → gentle hold → lower video exactly once per set.
+class _TimedQuadricepsGuide extends StatefulWidget {
+  final _QuadricepsMotionPhase phase;
+
+  const _TimedQuadricepsGuide({required this.phase});
+
+  @override
+  State<_TimedQuadricepsGuide> createState() => _TimedQuadricepsGuideState();
+}
+
+class _TimedQuadricepsGuideState extends State<_TimedQuadricepsGuide>
+    with WidgetsBindingObserver {
+  late final VideoPlayerController _videoController;
+  bool _hasLoadError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _videoController = VideoPlayerController.asset(
+      'assets/exercise/bps_quad_stretch_pingpong.mp4',
+    );
+    _videoController.initialize().then((_) {
+      if (!mounted) return;
+      _videoController.setVolume(0);
+      _syncPlayback();
+      setState(() {});
+    }).catchError((Object _) {
+      if (mounted) setState(() => _hasLoadError = true);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _TimedQuadricepsGuide oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.phase != widget.phase &&
+        widget.phase == _QuadricepsMotionPhase.raising) {
+      _syncPlayback();
+    }
+  }
+
+  void _syncPlayback() {
+    if (!_videoController.value.isInitialized ||
+        widget.phase != _QuadricepsMotionPhase.raising) {
+      return;
+    }
+    _videoController
+      ..seekTo(Duration.zero)
+      ..play();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed && _videoController.value.isPlaying) {
+      _videoController.pause();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _videoController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: _hasLoadError
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  '운동 영상을 불러오지 못했어요.\n앱을 완전히 종료한 뒤 다시 실행해주세요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xff5D6170)),
+                ),
+              ),
+            )
+          : !_videoController.value.isInitialized
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xff725AC1)),
+            )
+          : Center(
+              child: AspectRatio(
+                aspectRatio: _videoController.value.aspectRatio,
+                child: VideoPlayer(_videoController),
+              ),
+            ),
+    );
+  }
+}
+
+/// Reusable motion rig for the two common lower-body moves. The motion is
+/// independent from the selected explorer/pet skin, so new profiles only add
+/// colours and a pet instead of requiring new exercise artwork.
+// ignore: unused_element
+class _ExplorerPetMotionGuide extends StatelessWidget {
+  final AnimationController controller;
+  final FigureAnimation animation;
+  final String profileId;
+
+  const _ExplorerPetMotionGuide({
+    required this.controller,
+    required this.animation,
+    required this.profileId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: const Color(0xff171923),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) => CustomPaint(
+          painter: _ExplorerPetMotionPainter(
+            phase: controller.value,
+            animation: animation,
+            profileId: profileId,
+          ),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExplorerPetMotionPainter extends CustomPainter {
+  final double phase;
+  final FigureAnimation animation;
+  final String profileId;
+
+  const _ExplorerPetMotionPainter({
+    required this.phase,
+    required this.animation,
+    required this.profileId,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = math.min(size.width / 280, size.height / 330);
+    final origin = Offset(
+      (size.width - 280 * scale) / 2,
+      (size.height - 330 * scale) / 2,
+    );
+    canvas
+      ..save()
+      ..translate(origin.dx, origin.dy)
+      ..scale(scale);
+
+    final pulse = Curves.easeInOut.transform(phase);
+    final skin = _ExplorerMotionSkin.forProfile(profileId);
+    final isQuadStretch = animation == FigureAnimation.hipFlexor;
+    final floor = Paint()..color = const Color(0xff2A2E3B);
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(140, 303), width: 220, height: 25),
+      floor,
+    );
+
+    _drawExplorer(canvas, skin, pulse, isQuadStretch);
+    _drawPet(canvas, skin, pulse, isQuadStretch);
+    _drawMotionCue(canvas, pulse, isQuadStretch, skin.accent);
+    canvas.restore();
+  }
+
+  void _drawExplorer(
+    Canvas canvas,
+    _ExplorerMotionSkin skin,
+    double pulse,
+    bool isQuadStretch,
+  ) {
+    final outline = Paint()
+      ..color = const Color(0xff0D1018)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    final skinPaint = Paint()..color = const Color(0xffF4C8A6);
+    final pants = Paint()..color = skin.pants;
+    final jacket = Paint()..color = skin.jacket;
+    final trim = Paint()..color = skin.trim;
+    final hair = Paint()..color = skin.hair;
+
+    final lean = isQuadStretch ? 0.0 : -6 * pulse;
+    final hip = Offset(126 + lean, 188);
+    final shoulder = Offset(126 + lean, 112);
+    final head = Offset(126 + lean, 75);
+    final supportKnee = Offset(112 + lean, 266);
+    final supportAnkle = Offset(109 + lean, 300);
+    final movingKnee = isQuadStretch
+        ? Offset(160 + lean, 246 - 4 * pulse)
+        : Offset(164 + lean + 10 * pulse, 267 - 12 * pulse);
+    final movingAnkle = isQuadStretch
+        ? Offset(185 + lean, 188 + 8 * (1 - pulse))
+        : Offset(190 + lean + 22 * pulse, 287 - 28 * pulse);
+
+    // Supporting wall makes both common standing moves easy to read.
+    final wall = Paint()..color = const Color(0xff404656);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(27, 82, 10, 215),
+        const Radius.circular(6),
+      ),
+      wall,
+    );
+
+    _limb(canvas, hip, supportKnee, 26, pants, outline);
+    _limb(canvas, supportKnee, supportAnkle, 23, pants, outline);
+    _limb(canvas, hip, movingKnee, 26, pants, outline);
+    _limb(canvas, movingKnee, movingAnkle, 23, pants, outline);
+    _shoe(canvas, supportAnkle, skin.shoe, outline);
+    _shoe(canvas, movingAnkle, skin.shoe, outline);
+
+    final torso = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(126 + lean, 149), width: 69, height: 90),
+      const Radius.circular(25),
+    );
+    canvas.drawRRect(torso, jacket);
+    canvas.drawRRect(torso, outline);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(126 + lean, 135), width: 67, height: 27),
+        const Radius.circular(13),
+      ),
+      trim,
+    );
+    canvas.drawLine(
+      Offset(126 + lean, 107),
+      Offset(126 + lean, 192),
+      Paint()
+        ..color = const Color(0xffF7F3EA).withValues(alpha: 0.72)
+        ..strokeWidth = 2,
+    );
+    canvas.drawLine(
+      Offset(93 + lean, 177),
+      Offset(159 + lean, 177),
+      Paint()
+        ..color = skin.pants
+        ..strokeWidth = 7
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final leftElbow = Offset(76 + lean, 139);
+    final leftHand = const Offset(38, 163);
+    final rightElbow = isQuadStretch
+        ? Offset(177 + lean, 144)
+        : Offset(177 + lean, 151);
+    final rightHand = isQuadStretch
+        ? Offset(movingAnkle.dx + 1, movingAnkle.dy - 4)
+        : Offset(167 + lean, 192);
+    _limb(canvas, shoulder + const Offset(-25, 0), leftElbow, 18, jacket, outline);
+    _limb(canvas, leftElbow, leftHand, 15, jacket, outline);
+    _hand(canvas, leftHand, skinPaint, outline);
+    _limb(canvas, shoulder + const Offset(25, 0), rightElbow, 18, jacket, outline);
+    _limb(canvas, rightElbow, rightHand, 15, jacket, outline);
+    _hand(canvas, rightHand, skinPaint, outline);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(head.dx, head.dy + 25), width: 20, height: 28),
+        const Radius.circular(8),
+      ),
+      skinPaint,
+    );
+    canvas.drawCircle(head, 27, skinPaint);
+    canvas.drawCircle(head, 27, outline);
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(head.dx, head.dy - 6), width: 56, height: 48),
+      math.pi,
+      math.pi,
+      true,
+      hair,
+    );
+    canvas.drawCircle(Offset(head.dx - 10, head.dy + 2), 3.1, Paint()..color = const Color(0xff20212A));
+    canvas.drawCircle(Offset(head.dx + 10, head.dy + 2), 3.1, Paint()..color = const Color(0xff20212A));
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(head.dx, head.dy + 11), width: 14, height: 9),
+      0.1,
+      math.pi - 0.2,
+      false,
+      Paint()
+        ..color = const Color(0xffB55D61)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+  }
+
+  void _drawPet(
+    Canvas canvas,
+    _ExplorerMotionSkin skin,
+    double pulse,
+    bool isQuadStretch,
+  ) {
+    final bounce = math.sin(phase * math.pi) * 5;
+    final center = Offset(224, 249 - bounce);
+    final outline = Paint()
+      ..color = const Color(0xff0D1018)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+    final body = Paint()..color = skin.petBody;
+    final face = Paint()..color = skin.petFace;
+
+    canvas.drawOval(
+      Rect.fromCenter(center: center + const Offset(0, 23), width: 62, height: 75),
+      body,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: center + const Offset(0, 23), width: 62, height: 75),
+      outline,
+    );
+    _drawPetEars(canvas, center, skin, outline);
+    canvas.drawOval(
+      Rect.fromCenter(center: center + const Offset(0, 10), width: 49, height: 40),
+      face,
+    );
+
+    final eye = Paint()..color = const Color(0xff20212A);
+    canvas.drawCircle(center + const Offset(-10, 8), 3.2, eye);
+    canvas.drawCircle(center + const Offset(10, 8), 3.2, eye);
+    canvas.drawOval(
+      Rect.fromCenter(center: center + const Offset(0, 19), width: 8, height: 5),
+      Paint()..color = skin.petNose,
+    );
+    // Matching explorer jacket: the pet is part of the same animated rig.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: center + const Offset(0, 37), width: 54, height: 34),
+        const Radius.circular(14),
+      ),
+      Paint()..color = skin.jacket,
+    );
+    canvas.drawLine(
+      center + const Offset(0, 21),
+      center + const Offset(0, 53),
+      Paint()
+        ..color = skin.trim
+        ..strokeWidth = 4,
+    );
+
+    final legLift = isQuadStretch ? 16 * pulse : 8 * pulse;
+    _petLeg(canvas, center + const Offset(-14, 58), center + Offset(-18, 70 - legLift), body, outline);
+    _petLeg(canvas, center + const Offset(14, 58), center + Offset(19 + 10 * pulse, 70 - (isQuadStretch ? legLift : 18 * pulse)), body, outline);
+  }
+
+  void _drawPetEars(
+    Canvas canvas,
+    Offset center,
+    _ExplorerMotionSkin skin,
+    Paint outline,
+  ) {
+    if (skin.petKind == _PetKind.fox) {
+      final ear = Paint()..color = skin.petBody;
+      final left = Path()
+        ..moveTo(center.dx - 25, center.dy + 1)
+        ..lineTo(center.dx - 28, center.dy - 25)
+        ..lineTo(center.dx - 8, center.dy - 10)
+        ..close();
+      final right = Path()
+        ..moveTo(center.dx + 25, center.dy + 1)
+        ..lineTo(center.dx + 28, center.dy - 25)
+        ..lineTo(center.dx + 8, center.dy - 10)
+        ..close();
+      canvas
+        ..drawPath(left, ear)
+        ..drawPath(right, ear)
+        ..drawPath(left, outline)
+        ..drawPath(right, outline);
+      return;
+    }
+    if (skin.petKind == _PetKind.hedgehog) {
+      for (var index = 0; index < 7; index++) {
+        final x = center.dx - 27 + index * 9;
+        canvas.drawLine(
+          Offset(x, center.dy - 3),
+          Offset(x - 4, center.dy - 21 - (index.isEven ? 5 : 0)),
+          Paint()
+            ..color = const Color(0xff855337)
+            ..strokeWidth = 7
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+      return;
+    }
+    if (skin.petKind == _PetKind.panda) {
+      canvas.drawCircle(center + const Offset(-20, -10), 12, Paint()..color = const Color(0xff20212A));
+      canvas.drawCircle(center + const Offset(20, -10), 12, Paint()..color = const Color(0xff20212A));
+      canvas.drawOval(Rect.fromCenter(center: center + const Offset(-10, 8), width: 15, height: 11), Paint()..color = const Color(0xff20212A));
+      canvas.drawOval(Rect.fromCenter(center: center + const Offset(10, 8), width: 15, height: 11), Paint()..color = const Color(0xff20212A));
+      return;
+    }
+    // Penguin's small crown feathers.
+    canvas.drawLine(center + const Offset(-5, -10), center + const Offset(-10, -22), outline);
+    canvas.drawLine(center + const Offset(2, -10), center + const Offset(7, -22), outline);
+  }
+
+  void _drawMotionCue(
+    Canvas canvas,
+    double pulse,
+    bool isQuadStretch,
+    Color color,
+  ) {
+    final cue = Paint()
+      ..color = color.withValues(alpha: 0.80)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    final rect = isQuadStretch
+        ? Rect.fromCenter(
+            center: const Offset(177, 226),
+            width: 66,
+            height: 96,
+          )
+        : Rect.fromCenter(
+            center: const Offset(175, 262),
+            width: 88,
+            height: 52,
+          );
+    canvas.drawArc(rect, isQuadStretch ? -1.1 : 3.45, isQuadStretch ? 1.1 : 1.0 + pulse * 0.2, false, cue);
+  }
+
+  void _limb(Canvas canvas, Offset from, Offset to, double width, Paint fill, Paint outline) {
+    canvas
+      ..drawLine(from, to, Paint()
+        ..color = outline.color
+        ..strokeWidth = width + 4
+        ..strokeCap = StrokeCap.round)
+      ..drawLine(from, to, Paint()
+        ..color = fill.color
+        ..strokeWidth = width
+        ..strokeCap = StrokeCap.round);
+  }
+
+  void _shoe(Canvas canvas, Offset ankle, Color color, Paint outline) {
+    final shoe = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: ankle + const Offset(6, 4), width: 29, height: 14),
+      const Radius.circular(7),
+    );
+    canvas
+      ..drawRRect(shoe, Paint()..color = color)
+      ..drawRRect(shoe, outline);
+  }
+
+  void _hand(Canvas canvas, Offset point, Paint fill, Paint outline) {
+    canvas
+      ..drawCircle(point, 8, fill)
+      ..drawCircle(point, 8, outline);
+  }
+
+  void _petLeg(Canvas canvas, Offset from, Offset to, Paint fill, Paint outline) {
+    _limb(canvas, from, to, 10, fill, outline);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ExplorerPetMotionPainter oldDelegate) =>
+      oldDelegate.phase != phase ||
+      oldDelegate.animation != animation ||
+      oldDelegate.profileId != profileId;
+}
+
+enum _PetKind { fox, hedgehog, penguin, panda }
+
+class _ExplorerMotionSkin {
+  final Color jacket;
+  final Color trim;
+  final Color pants;
+  final Color shoe;
+  final Color hair;
+  final Color accent;
+  final Color petBody;
+  final Color petFace;
+  final Color petNose;
+  final _PetKind petKind;
+
+  const _ExplorerMotionSkin({
+    required this.jacket,
+    required this.trim,
+    required this.pants,
+    required this.shoe,
+    required this.hair,
+    required this.accent,
+    required this.petBody,
+    required this.petFace,
+    required this.petNose,
+    required this.petKind,
+  });
+
+  static _ExplorerMotionSkin forProfile(String profileId) {
+    return switch (profileId) {
+      'forward' => const _ExplorerMotionSkin(
+          jacket: Color(0xff8FCABE), trim: Color(0xffE6F1EC), pants: Color(0xffD8CCB8), shoe: Color(0xff537C78), hair: Color(0xff20242D), accent: Color(0xffE07A3A), petBody: Color(0xffE87531), petFace: Color(0xffFFF1D9), petNose: Color(0xff38241E), petKind: _PetKind.fox),
+      'slouch' => const _ExplorerMotionSkin(
+          jacket: Color(0xffA87858), trim: Color(0xffF4E5D2), pants: Color(0xff664939), shoe: Color(0xff9A8067), hair: Color(0xff593F33), accent: Color(0xffC18A58), petBody: Color(0xff8A5535), petFace: Color(0xffF2D7B0), petNose: Color(0xff34221D), petKind: _PetKind.hedgehog),
+      'tilted' => const _ExplorerMotionSkin(
+          jacket: Color(0xff86518A), trim: Color(0xffF4E9DB), pants: Color(0xffE9DECE), shoe: Color(0xff9B7B91), hair: Color(0xff5A3E36), accent: Color(0xff9B6AC9), petBody: Color(0xff20212A), petFace: Color(0xffFFF8EC), petNose: Color(0xff292A30), petKind: _PetKind.panda),
+      _ => const _ExplorerMotionSkin(
+          jacket: Color(0xff243C67), trim: Color(0xffF2E9D7), pants: Color(0xff24354E), shoe: Color(0xff2D548A), hair: Color(0xff2B1F22), accent: Color(0xff8D6ADC), petBody: Color(0xff202737), petFace: Color(0xffF8F6EC), petNose: Color(0xffF2A62B), petKind: _PetKind.penguin),
+    };
+  }
+}
+
+// ignore: unused_element
 class _FrameSequenceGuide extends StatefulWidget {
   const _FrameSequenceGuide();
 
@@ -984,7 +1546,7 @@ class _FrameSequenceGuideState extends State<_FrameSequenceGuide> {
             key: ValueKey(_frameIndex),
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
-            errorBuilder: (_, __, ___) => const Icon(
+            errorBuilder: (context, error, stackTrace) => const Icon(
               Icons.broken_image_outlined,
               color: Colors.white54,
               size: 48,
@@ -1942,7 +2504,7 @@ final _slouchRoutines = <CorrectiveRoutine>[
   CorrectiveRoutine(
     title: 'SSS-P 교정 루틴',
     emoji: '🐻🦔',
-    message: '꾸벅 곰을 위한 오늘의 조합이에요.\n굳은 앞쪽을 풀고, 등을 펴는 힘을 깨워요.',
+    message: '쉬었음 탐험가와 뒤말림 고슴도치를 위한 오늘의 조합이에요.\n굳은 앞쪽을 풀고, 등을 펴는 힘을 깨워요.',
     pairs: [
       CorrectivePair(
         title: '가슴 열기 → Y 자세',
@@ -1993,7 +2555,7 @@ final _slouchRoutines = <CorrectiveRoutine>[
   CorrectiveRoutine(
     title: 'SSS-P 교정 루틴',
     emoji: '🐻🦔',
-    message: '꾸벅 곰을 위한 오늘의 조합이에요.\n목·어깨 긴장을 낮추고 상체를 세워요.',
+    message: '쉬었음 탐험가와 뒤말림 고슴도치를 위한 오늘의 조합이에요.\n목·어깨 긴장을 낮추고 상체를 세워요.',
     pairs: [
       CorrectivePair(
         title: '목 이완 → 턱 당기기',
@@ -2047,7 +2609,7 @@ final _balancedRoutines = <CorrectiveRoutine>[
   CorrectiveRoutine(
     title: 'BPS-N 유지 루틴',
     emoji: '🐧🦦',
-    message: '바른 흐름을 지키는 오늘의 조합이에요.\n가볍게 풀고, 편한 자세를 기억해요.',
+    message: '바른자세 탐험가와 중심 펭귄이 함께하는 오늘의 조합이에요.\n가볍게 풀고, 편한 자세를 기억해요.',
     pairs: [
       CorrectivePair(
         title: '목 이완 → 목 위치 기억',
@@ -2098,7 +2660,7 @@ final _balancedRoutines = <CorrectiveRoutine>[
   CorrectiveRoutine(
     title: 'BPS-N 유지 루틴',
     emoji: '🐧🦦',
-    message: '바른 흐름을 지키는 오늘의 조합이에요.\n상체와 골반을 편하게 깨워요.',
+    message: '바른자세 탐험가와 중심 펭귄이 함께하는 오늘의 조합이에요.\n상체와 골반을 편하게 깨워요.',
     pairs: [
       CorrectivePair(
         title: '등 이완 → Y 자세',

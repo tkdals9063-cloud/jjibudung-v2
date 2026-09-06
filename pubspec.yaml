@@ -21,6 +21,8 @@ dependencies:
   package_info_plus: ^9.0.0
   android_intent_plus: ^6.0.0
   proximity_sensor: ^1.4.0
+  video_player: ^2.14.0
+  supabase_flutter: ^2.9.0
 
 dev_dependencies:
   flutter_test:
@@ -36,6 +38,7 @@ flutter:
   assets:
     - assets/stretch/
     - assets/exercise/
+    - assets/exercise/bps_quad_stretch_side_profile/
     - assets/characters/
     - assets/icon/
 

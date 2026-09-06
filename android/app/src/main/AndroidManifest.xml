@@ -24,6 +24,14 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Supabase OAuth(카카오 등) 로그인 완료 후 앱으로 돌아오는 딥링크 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="jjibudung" android:host="login-callback"/>
+            </intent-filter>
         </activity>
 
         <meta-data

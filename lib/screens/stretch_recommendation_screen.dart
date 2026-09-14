@@ -4,12 +4,22 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../models/posture_companion.dart';
 import '../services/storage_service.dart';
+
+/// 팬더의 좌·우 압력 편향을 스트레칭 추천에 전달하는 값이다.
+/// 실제 센서 어댑터는 좌석 좌·우 압력의 우세 쪽을 이 값으로 넘긴다.
+enum PandaLeanSide { left, right }
 
 class StretchRecommendationScreen extends StatefulWidget {
   final String profileId;
+  final PandaLeanSide? pandaLeanSide;
 
-  const StretchRecommendationScreen({super.key, this.profileId = 'balanced'});
+  const StretchRecommendationScreen({
+    super.key,
+    this.profileId = 'balanced',
+    this.pandaLeanSide,
+  });
 
   @override
   State<StretchRecommendationScreen> createState() =>
@@ -17,34 +27,80 @@ class StretchRecommendationScreen extends StatefulWidget {
 }
 
 class _StretchProfilePortrait extends StatelessWidget {
-  final String profileId;
+  final PostureCompanionPair companion;
 
-  const _StretchProfilePortrait({required this.profileId});
+  const _StretchProfilePortrait({required this.companion});
 
   @override
   Widget build(BuildContext context) {
-    final imagePath = switch (profileId) {
-      'forward' => 'assets/characters/avatar_forward_fox.png',
-      'slouch' => 'assets/characters/avatar_rested_hedgehog.png',
-      'tilted' => 'assets/characters/avatar_tilted_panda.png',
-      _ => 'assets/characters/avatar_balanced_penguin.png',
-    };
-
-    return SizedBox(
-      height: 120,
-      child: Image.asset(imagePath, fit: BoxFit.contain),
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        _CompanionChip(
+          icon: Icons.explore_rounded,
+          label: companion.explorer.name,
+          color: const Color(0xff725AC1),
+        ),
+        _CompanionChip(
+          icon: Icons.pets_rounded,
+          label: companion.pet.name,
+          color: const Color(0xffD96B42),
+        ),
+      ],
     );
   }
 }
+
+class _CompanionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _CompanionChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StretchRecommendationScreenState
     extends State<StretchRecommendationScreen> {
   int? _completedToday;
   late CorrectiveRoutine _routine;
+  late final PostureCompanionPair _companion;
 
   @override
   void initState() {
     super.initState();
-    _routine = _routineFor(widget.profileId);
+    _routine = _routineFor(
+      widget.profileId,
+      pandaLeanSide: widget.pandaLeanSide,
+    );
+    _companion = pairForLegacyProfile(widget.profileId);
     _loadCompletedCount();
   }
 
@@ -121,7 +177,6 @@ class _StretchRecommendationScreenState
   @override
   Widget build(BuildContext context) {
     final completedToday = _completedToday;
-    final isBalancedRoutine = widget.profileId == 'balanced';
     final isLimitReached =
         (completedToday ?? 0) >= StorageService.phoneDailyStretchLimit;
 
@@ -135,35 +190,31 @@ class _StretchRecommendationScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (!isBalancedRoutine) ...[
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0xffF5F1FF),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Column(
-                          children: [
-                            _StretchProfilePortrait(
-                              profileId: widget.profileId,
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              _routine.message,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 17,
-                                height: 1.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xffF5F1FF),
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      const SizedBox(height: 22),
-                    ],
+                      child: Column(
+                        children: [
+                          _StretchProfilePortrait(companion: _companion),
+                          const SizedBox(height: 12),
+                          Text(
+                            _routine.message,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              height: 1.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 22),
                     const Text(
-                      '오늘의 랜덤 교정 루틴',
+                      '오늘의 맞춤 교정 루틴',
                       style: TextStyle(
                         fontSize: 21,
                         fontWeight: FontWeight.bold,
@@ -171,7 +222,7 @@ class _StretchRecommendationScreenState
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      '긴장된 부위를 먼저 풀고, 자세를 받쳐 줄 근육을 깨워요.',
+                      '탐험가 상체 1쌍 + 펫 하체·골반 1쌍으로 구성했어요.',
                       style: TextStyle(color: Colors.grey, height: 1.4),
                     ),
                     const SizedBox(height: 14),
@@ -184,6 +235,9 @@ class _StretchRecommendationScreenState
                           _RoutineMoveCard(
                             number: entry.key + 1,
                             move: entry.value.release,
+                            companionLabel: entry.key == 0
+                                ? _companion.explorer.name
+                                : _companion.pet.name,
                             onSwap: () => _swapMove(entry.key, MoveRole.release),
                             onInfo: () => _showRecommendationReason(entry.value),
                           ),
@@ -199,6 +253,9 @@ class _StretchRecommendationScreenState
                           _RoutineMoveCard(
                             number: entry.key + 1,
                             move: entry.value.activate,
+                            companionLabel: entry.key == 0
+                                ? _companion.explorer.name
+                                : _companion.pet.name,
                             onSwap: () => _swapMove(entry.key, MoveRole.activate),
                             onInfo: () => _showRecommendationReason(entry.value),
                           ),
@@ -280,11 +337,31 @@ class _StretchRecommendationScreenState
       release: role == MoveRole.release ? selected : null,
       activate: role == MoveRole.activate ? selected : null,
     );
-    final pairs = [..._routine.pairs]..[pairIndex] = replacement;
+    final pairs = [..._routine.pairs];
+    final existingMoveIndex = pairs.indexWhere(
+      (pair) =>
+          pair != currentPair &&
+          (role == MoveRole.release ? pair.release : pair.activate).title ==
+              selected.title,
+    );
+
+    pairs[pairIndex] = replacement;
+    if (existingMoveIndex != -1) {
+      final existingPair = pairs[existingMoveIndex];
+      pairs[existingMoveIndex] = existingPair.copyWith(
+        release: role == MoveRole.release ? currentMove : null,
+        activate: role == MoveRole.activate ? currentMove : null,
+      );
+    }
+
     setState(() => _routine = _routine.copyWith(pairs: pairs));
   }
 
   void _showRecommendationReason(CorrectivePair pair) {
+    final isBlocked = pair.blockedProfileIds.contains(widget.profileId);
+    final accentColor = isBlocked
+        ? const Color(0xffC84D4D)
+        : const Color(0xff725AC1);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -295,13 +372,18 @@ class _StretchRecommendationScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.thumb_up_alt_rounded, color: Color(0xff725AC1)),
-                  SizedBox(width: 8),
+                  Icon(
+                    isBlocked
+                        ? Icons.thumb_down_alt_rounded
+                        : Icons.thumb_up_alt_rounded,
+                    color: accentColor,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    '왜 이 조합을 추천하나요?',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                    isBlocked ? '왜 이 조합을 비추천하나요?' : '왜 이 조합을 추천하나요?',
+                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -310,9 +392,11 @@ class _StretchRecommendationScreenState
               const SizedBox(height: 6),
               Text(pair.recommendationReason, style: const TextStyle(height: 1.5)),
               const SizedBox(height: 12),
-              const Text(
-                '측정으로 파악한 자세 경향을 바탕으로 우선순위를 정한 안내예요. 통증이 있으면 진행하지 마세요.',
-                style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.45),
+              Text(
+                isBlocked
+                    ? '현재 자세 경향에는 부담을 키울 수 있어 기본 루틴에서 제외해요. 통증이 있으면 진행하지 마세요.'
+                    : '측정으로 파악한 자세 경향을 바탕으로 우선순위를 정한 안내예요. 통증이 있으면 진행하지 마세요.',
+                style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.45),
               ),
             ],
           ),
@@ -360,12 +444,14 @@ class _RoutinePart extends StatelessWidget {
 class _RoutineMoveCard extends StatelessWidget {
   final int number;
   final CorrectiveMove move;
+  final String companionLabel;
   final VoidCallback onSwap;
   final VoidCallback onInfo;
 
   const _RoutineMoveCard({
     required this.number,
     required this.move,
+    required this.companionLabel,
     required this.onSwap,
     required this.onInfo,
   });
@@ -393,7 +479,10 @@ class _RoutineMoveCard extends StatelessWidget {
               children: [
                 Text(move.title, style: const TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text('${move.target} · ${move.sets}세트', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  '$companionLabel · ${move.target} · ${move.sets}세트',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -483,8 +572,9 @@ class _PickerMoveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = isBlocked ? const Color(0xffF1F1F3) : Colors.white;
-    final textColor = isBlocked ? Colors.grey.shade600 : const Color(0xff24232A);
+    final blockedColor = const Color(0xffC84D4D);
+    final background = isBlocked ? const Color(0xffFFF4F3) : Colors.white;
+    final textColor = isBlocked ? const Color(0xffA84A4A) : const Color(0xff24232A);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: background,
@@ -498,7 +588,10 @@ class _PickerMoveCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(isBlocked ? Icons.lock_outline_rounded : Icons.self_improvement_rounded, color: isBlocked ? Colors.grey : const Color(0xff725AC1)),
+              Icon(
+                isBlocked ? Icons.thumb_down_alt_outlined : Icons.self_improvement_rounded,
+                color: isBlocked ? blockedColor : const Color(0xff725AC1),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -508,15 +601,26 @@ class _PickerMoveCard extends StatelessWidget {
                       children: [
                         Expanded(child: Text(option.move.title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor))),
                         _PickerLabel(
-                          text: isCurrent ? '현재 선택됨' : isBlocked ? '비추천' : '추천',
-                          color: isBlocked ? Colors.grey.shade600 : isCurrent ? const Color(0xff725AC1) : const Color(0xff3C8E6B),
+                          text: isBlocked ? '비추천' : isCurrent ? '현재 선택됨' : '추천',
+                          color: isBlocked
+                              ? blockedColor
+                              : isCurrent
+                              ? const Color(0xff725AC1)
+                              : const Color(0xff3C8E6B),
                         ),
                       ],
                     ),
                     const SizedBox(height: 5),
                     Text(option.move.target, style: TextStyle(color: textColor)),
                     const SizedBox(height: 6),
-                    Text(option.reason, style: TextStyle(fontSize: 12, color: isBlocked ? Colors.grey : Colors.grey.shade700, height: 1.4)),
+                    Text(
+                      option.reason,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isBlocked ? const Color(0xffA84A4A) : Colors.grey.shade700,
+                        height: 1.4,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -575,9 +679,13 @@ class _CorrectiveRoutineScreenState extends State<CorrectiveRoutineScreen>
 
   CorrectiveMove get _move => widget.routine.moves[_moveIndex];
 
-  bool get _isTimedQuadricepsMove =>
-      _move.animation == FigureAnimation.hipFlexor &&
-      widget.profileId == 'balanced';
+  bool get _isTimedGuideMove =>
+      _move.resolvedVideoAssetPath != null ||
+      (_move.animation == FigureAnimation.hipFlexor &&
+          widget.profileId == 'balanced') ||
+      _move.animation == FigureAnimation.neckRelease ||
+      (_move.animation == FigureAnimation.chestOpen &&
+          _move.title != '서서 허리 젖히기');
 
   @override
   void initState() {
@@ -603,7 +711,7 @@ class _CorrectiveRoutineScreenState extends State<CorrectiveRoutineScreen>
       _countdown = 0;
       _secondsLeft = _move.seconds;
       _isRunning = true;
-      _quadricepsPhase = _isTimedQuadricepsMove
+      _quadricepsPhase = _isTimedGuideMove
           ? _QuadricepsMotionPhase.raising
           : _QuadricepsMotionPhase.neutral;
     });
@@ -938,9 +1046,29 @@ class _SmoothExerciseGuide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (move.animation == FigureAnimation.hipFlexor &&
-        profileId == 'balanced') {
-      return _TimedQuadricepsGuide(phase: quadricepsPhase);
+    if (move.resolvedVideoAssetPath != null) {
+      return _TimedAssetGuide(
+        key: ValueKey('${move.title}:${move.resolvedVideoAssetPath}'),
+        phase: quadricepsPhase,
+        assetPath: move.resolvedVideoAssetPath!,
+      );
+    }
+
+    if (move.animation == FigureAnimation.chestOpen &&
+        move.title != '서서 허리 젖히기') {
+      return _TimedAssetGuide(
+        key: ValueKey('${move.title}:pec'),
+        phase: quadricepsPhase,
+        assetPath: 'assets/exercise/pec_stretch_clean_hold20_reverse.mp4',
+      );
+    }
+
+    if (move.animation == FigureAnimation.neckRelease) {
+      return _TimedAssetGuide(
+        key: ValueKey('${move.title}:neck'),
+        phase: quadricepsPhase,
+        assetPath: 'assets/exercise/neck_stretch_clean_white_v2.mp4',
+      );
     }
 
     final assetPath = _guideAssetPath(move.animation);
@@ -989,17 +1117,22 @@ class _SmoothExerciseGuide extends StatelessWidget {
 
 enum _QuadricepsMotionPhase { neutral, raising }
 
-/// Plays the approved raise → gentle hold → lower video exactly once per set.
-class _TimedQuadricepsGuide extends StatefulWidget {
+/// Plays a timed exercise video exactly once when the set begins.
+class _TimedAssetGuide extends StatefulWidget {
   final _QuadricepsMotionPhase phase;
+  final String assetPath;
 
-  const _TimedQuadricepsGuide({required this.phase});
+  const _TimedAssetGuide({
+    super.key,
+    required this.phase,
+    required this.assetPath,
+  });
 
   @override
-  State<_TimedQuadricepsGuide> createState() => _TimedQuadricepsGuideState();
+  State<_TimedAssetGuide> createState() => _TimedAssetGuideState();
 }
 
-class _TimedQuadricepsGuideState extends State<_TimedQuadricepsGuide>
+class _TimedAssetGuideState extends State<_TimedAssetGuide>
     with WidgetsBindingObserver {
   late final VideoPlayerController _videoController;
   bool _hasLoadError = false;
@@ -1009,7 +1142,7 @@ class _TimedQuadricepsGuideState extends State<_TimedQuadricepsGuide>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _videoController = VideoPlayerController.asset(
-      'assets/exercise/bps_quad_stretch_pingpong.mp4',
+      widget.assetPath,
     );
     _videoController.initialize().then((_) {
       if (!mounted) return;
@@ -1022,7 +1155,7 @@ class _TimedQuadricepsGuideState extends State<_TimedQuadricepsGuide>
   }
 
   @override
-  void didUpdateWidget(covariant _TimedQuadricepsGuide oldWidget) {
+  void didUpdateWidget(covariant _TimedAssetGuide oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.phase != widget.phase &&
         widget.phase == _QuadricepsMotionPhase.raising) {
@@ -2379,10 +2512,14 @@ class _ExerciseFigurePainter extends CustomPainter {
   }
 }
 
-CorrectiveRoutine _routineFor(String profileId) {
+CorrectiveRoutine _routineFor(
+  String profileId, {
+  PandaLeanSide? pandaLeanSide,
+}) {
   final routines = switch (profileId) {
     'forward' => _forwardRoutines,
     'slouch' => _slouchRoutines,
+    'tilted' => _tiltedRoutines,
     _ => _balancedRoutines,
   };
 
@@ -2392,30 +2529,66 @@ CorrectiveRoutine _routineFor(String profileId) {
       today.month * 100 +
       today.day +
       profileId.codeUnits.fold<int>(0, (sum, codeUnit) => sum + codeUnit);
-  return routines[seed % routines.length];
+  final routine = routines[seed % routines.length];
+  if (profileId != 'tilted' || pandaLeanSide == null) return routine;
+  return _applyPandaLateralRecommendation(routine, pandaLeanSide);
+}
+
+/// 좌·우 편향을 받았을 때만 해당 쪽 요방형근 이완 영상을 덮어쓴다.
+/// 기우뚱 팬더는 옆허리 이완과 기존 고관절 회전 가동성, 두 동작만
+/// 한 쌍으로 보여준다.
+/// 기존 프로필 화면은 방향을 추측하지 않고 원래 루틴을 유지한다.
+CorrectiveRoutine _applyPandaLateralRecommendation(
+  CorrectiveRoutine routine,
+  PandaLeanSide side,
+) {
+  if (routine.pairs.length < 2) return routine;
+
+  final sideLabel = side == PandaLeanSide.left ? '우측' : '좌측';
+  final videoAssetPath = side == PandaLeanSide.left
+      ? 'assets/exercise/quadratus_lumborum_wall_right_pingpong_25s.mp4'
+      : 'assets/exercise/quadratus_lumborum_wall_left_pingpong_25s.mp4';
+  final quadratusLumborumMove = CorrectiveMove(
+    title: '$sideLabel 요방형근 스트레칭',
+    target: '$sideLabel 요방형근',
+    guide: '벽을 $sideLabel 손으로 짚고, 다리 위치는 그대로 둔 채 $sideLabel 허리를 안쪽으로 부드럽게 늘려요.',
+    seconds: 25,
+    sets: 2,
+    role: MoveRole.release,
+    animation: FigureAnimation.hipFlexor,
+    videoAssetPath: videoAssetPath,
+  );
+  final pairs = [...routine.pairs];
+  pairs[1] = pairs[1].copyWith(
+    title: '$sideLabel 요방형근 이완 → $sideLabel 고관절 회전',
+    description: '한쪽으로 굳은 $sideLabel 옆허리를 늘린 뒤, 같은 쪽 고관절 회전 움직임을 부드럽게 되찾아요.',
+    release: quadratusLumborumMove,
+  );
+  return routine.copyWith(pairs: pairs);
 }
 
 final _forwardRoutines = <CorrectiveRoutine>[
   CorrectiveRoutine(
-    title: 'FLS-A 교정 루틴',
-    emoji: '🐢🦊',
-    message: '거북목 탐험가를 위한 오늘의 조합이에요.\n가슴을 풀고, 목·등 지지력을 깨워요.',
+    title: 'LHE-A 교정 루틴',
+    emoji: '🧭🦊',
+    message: '미어켓 탐험가와 쭉뻗 여우를 위한 오늘의 조합이에요.\n허리 과활성을 낮추고 골반을 편하게 지지해요.',
     pairs: [
       CorrectivePair(
         title: '가슴 열기 → 견갑 고정',
         description: '앞쪽의 답답함을 줄이고 어깨를 편하게 뒤로 지지해요.',
         release: CorrectiveMove(
           title: '서서 가슴 열기',
-          target: '가슴·어깨',
+          target: '대흉근·소흉근',
           guide: '깍지 낀 손을 등 뒤로 보내고, 가슴을 편하게 열어주세요.',
           seconds: 25,
           sets: 2,
           role: MoveRole.release,
           animation: FigureAnimation.chestOpen,
+          videoAssetPath: 'assets/exercise/pec_stretch_clean_hold20_reverse.mp4',
         ),
         activate: CorrectiveMove(
           title: '벽 없이 견갑 조이기',
-          target: '등·어깨',
+          target: '능형근·중부 승모근',
           guide: '팔꿈치를 뒤로 끌어당기듯, 날개뼈를 가볍게 모아 2초 버텨요.',
           seconds: 20,
           sets: 2,
@@ -2424,76 +2597,88 @@ final _forwardRoutines = <CorrectiveRoutine>[
         ),
       ),
       CorrectivePair(
-        title: '목 옆 이완 → 턱 당기기',
-        description: '목 주변 긴장을 줄인 뒤, 고개 위치 감각을 다시 잡아요.',
+        title: '장요근 이완 → 둔근 강화',
+        description: '고관절 앞쪽을 늘린 뒤, 둔근으로 골반을 안정적으로 지지해요.',
         release: CorrectiveMove(
-          title: '목 옆 부드럽게 늘리기',
-          target: '목',
-          guide: '어깨는 내리고, 귀를 어깨 쪽으로 아주 천천히 기울여요.',
-          seconds: 20,
+          title: '반무릎 장요근 스트레칭',
+          target: '장요근·대퇴직근',
+          guide: '뒤쪽 무릎은 고정하고 앞무릎을 천천히 굽혀, 허리를 꺾지 않고 고관절 앞쪽을 늘려요.',
+          seconds: 25,
           sets: 2,
           role: MoveRole.release,
-          animation: FigureAnimation.neckRelease,
+          animation: FigureAnimation.hipFlexor,
+          videoAssetPath:
+              'assets/exercise/half_kneeling_hip_flexor_pingpong_25s.mp4',
         ),
         activate: CorrectiveMove(
-          title: '서서 턱 당기기',
-          target: '목',
-          guide: '시선은 정면에 두고, 턱을 수평으로 살짝 뒤로 당겨요.',
-          seconds: 20,
+          title: '스탠딩 힙 힌지',
+          target: '대둔근·햄스트링',
+          guide: '무릎은 살짝 굽히고 엉덩이만 뒤로 보내며, 허리는 중립으로 길게 유지해요.',
+          seconds: 25,
           sets: 2,
           role: MoveRole.activate,
-          animation: FigureAnimation.chinTuck,
+          animation: FigureAnimation.hipFlexor,
+          videoAssetPath:
+              'assets/exercise/standing_hip_hinge_pingpong_25s.mp4',
         ),
       ),
     ],
   ),
   CorrectiveRoutine(
-    title: 'FLS-A 교정 루틴',
-    emoji: '🐢🦊',
-    message: '거북목 탐험가를 위한 오늘의 조합이에요.\n상체를 길게 펴고, 자세 지지 근육을 깨워요.',
+    title: 'LHE-A 교정 루틴',
+    emoji: '🧭🦊',
+    message: '미어켓 탐험가와 쭉뻗 여우를 위한 오늘의 조합이에요.\n갈비뼈와 골반을 편하게 정렬해요.',
     pairs: [
       CorrectivePair(
-        title: '등 길게 만들기 → Y 자세',
-        description: '굽은 상체를 부드럽게 펴고 어깨 위쪽 움직임을 만들어요.',
+        title: '등 이완 → 팔꿈치 지지 푸시업 플러스',
+        description: '등의 과한 긴장을 낮춘 뒤, 전거근으로 견갑골을 안정적으로 밀어요.',
         release: CorrectiveMove(
           title: '서서 등 길게 늘리기',
-          target: '등',
+          target: '광배근·능형근 주변',
           guide: '두 손을 앞으로 뻗으며 등을 둥글고 길게 늘려주세요.',
           seconds: 25,
           sets: 2,
           role: MoveRole.release,
           animation: FigureAnimation.upperBackReach,
+          videoAssetPath:
+              'assets/exercise/back_stretch_total25_hold14_88_reverse.mp4',
         ),
         activate: CorrectiveMove(
-          title: '서서 Y 팔 들기',
-          target: '등·어깨',
-          guide: '팔을 Y자로 천천히 들고, 어깨가 귀로 올라가지 않게 해요.',
-          seconds: 20,
+          title: '팔꿈치 지지 푸시업 플러스',
+          target: '전거근·하부 승모근',
+          guide: '팔꿈치로 바닥을 밀어 등 윗부분을 넓히되, 허리는 꺾지 않아요.',
+          seconds: 25,
           sets: 2,
           role: MoveRole.activate,
-          animation: FigureAnimation.wallY,
+          animation: FigureAnimation.scapularSet,
+          videoAssetPath:
+              'assets/exercise/forearm_pushup_plus_pingpong_25s.mp4',
         ),
       ),
       CorrectivePair(
-        title: '대퇴직근 이완 → 둔근 강화',
-        description: '앞허벅지를 충분히 늘린 뒤, 둔근으로 골반을 안정적으로 지지해요.',
+        title: '장요근 이완 → 둔근 강화',
+        description: '고관절 앞쪽을 늘린 뒤, 둔근으로 골반을 안정적으로 지지해요.',
         release: CorrectiveMove(
-          title: '서서 대퇴직근 스트레칭',
-          target: '대퇴직근',
-          guide: '한쪽 발목을 잡아 뒤로 당기고, 무릎은 가까이 둔 채 앞허벅지를 편하게 늘려요.',
+          title: '반무릎 장요근 스트레칭',
+          target: '장요근·대퇴직근',
+          guide: '뒤쪽 무릎은 고정하고 앞무릎을 천천히 굽혀, 허리를 꺾지 않고 고관절 앞쪽을 늘려요.',
           seconds: 25,
           sets: 2,
           role: MoveRole.release,
           animation: FigureAnimation.hipFlexor,
+          videoAssetPath:
+              'assets/exercise/half_kneeling_hip_flexor_pingpong_25s.mp4',
         ),
         activate: CorrectiveMove(
-          title: '스탠딩 힙 익스텐션',
-          target: '둔근',
-          guide: '허리를 꺾지 말고 한쪽 다리를 뒤로 작게 뻗어 둔근에 2초 힘을 주세요.',
-          seconds: 20,
+          title: '스탠딩 힙 힌지',
+          target: '대둔근·햄스트링',
+          guide: '무릎은 살짝 굽히고 엉덩이만 뒤로 보내며, 허리는 중립으로 길게 유지해요.',
+          seconds: 25,
           sets: 2,
           role: MoveRole.activate,
-          animation: FigureAnimation.gluteSet,
+          animation: FigureAnimation.hipFlexor,
+          videoAssetPath:
+              'assets/exercise/standing_hip_hinge_pingpong_25s.mp4',
         ),
       ),
     ],
@@ -2504,7 +2689,7 @@ final _slouchRoutines = <CorrectiveRoutine>[
   CorrectiveRoutine(
     title: 'SSS-P 교정 루틴',
     emoji: '🐻🦔',
-    message: '쉬었음 탐험가와 뒤말림 고슴도치를 위한 오늘의 조합이에요.\n굳은 앞쪽을 풀고, 등을 펴는 힘을 깨워요.',
+    message: '쉬었음 탐험가와 웅크림 고슴도치를 위한 오늘의 조합이에요.\n굳은 앞쪽을 풀고, 등을 펴는 힘을 깨워요.',
     pairs: [
       CorrectivePair(
         title: '가슴 열기 → Y 자세',
@@ -2539,6 +2724,8 @@ final _slouchRoutines = <CorrectiveRoutine>[
           sets: 2,
           role: MoveRole.release,
           animation: FigureAnimation.upperBackReach,
+          videoAssetPath:
+              'assets/exercise/back_stretch_total25_hold14_88_reverse.mp4',
         ),
         activate: CorrectiveMove(
           title: '벽 없이 견갑 조이기',
@@ -2550,12 +2737,13 @@ final _slouchRoutines = <CorrectiveRoutine>[
           animation: FigureAnimation.scapularSet,
         ),
       ),
+      _hedgehogLowerBodyPair,
     ],
   ),
   CorrectiveRoutine(
     title: 'SSS-P 교정 루틴',
     emoji: '🐻🦔',
-    message: '쉬었음 탐험가와 뒤말림 고슴도치를 위한 오늘의 조합이에요.\n목·어깨 긴장을 낮추고 상체를 세워요.',
+    message: '쉬었음 탐험가와 웅크림 고슴도치를 위한 오늘의 조합이에요.\n목·어깨 긴장을 낮추고 상체를 세워요.',
     pairs: [
       CorrectivePair(
         title: '목 이완 → 턱 당기기',
@@ -2599,6 +2787,90 @@ final _slouchRoutines = <CorrectiveRoutine>[
           sets: 2,
           role: MoveRole.activate,
           animation: FigureAnimation.shoulderRoll,
+        ),
+      ),
+      _hedgehogLowerBodyPair,
+    ],
+  ),
+];
+
+final _hedgehogLowerBodyPair = CorrectivePair(
+  title: '햄스트링 이완 → 장요근 수축',
+  description: '골반을 뒤로 당기는 햄스트링 긴장을 낮춘 뒤, 고관절 앞쪽을 편하게 쓰는 감각을 되찾아요.',
+  release: CorrectiveMove(
+    title: '스탠딩 햄스트링 스트레칭',
+    target: '햄스트링',
+    guide: '무릎을 과하게 잠그지 말고, 허리를 길게 유지한 채 엉덩이를 뒤로 보내요.',
+    seconds: 25,
+    sets: 2,
+    role: MoveRole.release,
+    animation: FigureAnimation.hipFlexor,
+    videoAssetPath: 'assets/exercise/standing_hamstring_stretch_pingpong_25s.mp4',
+  ),
+  activate: CorrectiveMove(
+    title: '장요근 운동',
+    target: '장요근·대퇴직근',
+    guide: '양손으로 벽을 짚고 골반을 중립에 둔 채, 한쪽 무릎을 천천히 들어 올려요.',
+    seconds: 25,
+    sets: 2,
+    role: MoveRole.activate,
+    animation: FigureAnimation.hipFlexor,
+    videoAssetPath: 'assets/exercise/wall_supported_knee_raise_pingpong_25s.mp4',
+  ),
+);
+
+final _tiltedRoutines = <CorrectiveRoutine>[
+  CorrectiveRoutine(
+    title: 'LHE-T 균형 리셋 루틴',
+    emoji: '🐼',
+    message: '미어켓 탐험가와 기우뚱 팬더를 위한 오늘의 조합이에요.\n허리를 꺾는 힘은 낮추고 골반의 좌우 균형을 되찾아요.',
+    pairs: [
+      CorrectivePair(
+        title: '목 옆 이완 → 턱 당기기',
+        description: '한쪽으로 쏠린 목 주변을 풀고, 고개를 편한 중심으로 되돌려요.',
+        release: CorrectiveMove(
+          title: '목 옆 부드럽게 늘리기',
+          target: '목',
+          guide: '어깨 힘을 빼고, 머리를 한쪽으로 아주 천천히 기울여 목 옆을 늘려요.',
+          seconds: 20,
+          sets: 2,
+          role: MoveRole.release,
+          animation: FigureAnimation.neckRelease,
+        ),
+        activate: CorrectiveMove(
+          title: '서서 턱 당기기',
+          target: '목',
+          guide: '정면을 보며 턱을 수평으로 살짝 뒤로 당겨 중심을 잡아요.',
+          seconds: 20,
+          sets: 2,
+          role: MoveRole.activate,
+          animation: FigureAnimation.chinTuck,
+        ),
+      ),
+      CorrectivePair(
+        title: '이상근 이완 → 둔근 강화',
+        description: '엉덩이 깊은 곳의 긴장을 낮춘 뒤, 둔근을 깨워 골반이 한쪽으로 쏠리지 않게 도와요.',
+        release: CorrectiveMove(
+          title: '의자 이상근 스트레칭',
+          target: '이상근·심부 외회전근',
+          guide: '한쪽 발목을 반대쪽 무릎 위에 올리고, 등을 길게 유지한 채 무릎을 가볍게 아래로 눌러요.',
+          seconds: 25,
+          sets: 2,
+          role: MoveRole.release,
+          animation: FigureAnimation.hipFlexor,
+          videoAssetPath:
+              'assets/exercise/seated_piriformis_stretch_pingpong_25s.mp4',
+        ),
+        activate: CorrectiveMove(
+          title: '스탠딩 힙 익스텐션',
+          target: '둔근',
+          guide: '허리를 꺾지 말고 한쪽 다리를 뒤로 작게 뻗어 둔근에 2초 힘을 주세요.',
+          seconds: 25,
+          sets: 2,
+          role: MoveRole.activate,
+          animation: FigureAnimation.gluteSet,
+          videoAssetPath:
+              'assets/exercise/glute_extension_total25_reverse_play_x3_ground_hold.mp4',
         ),
       ),
     ],
@@ -2673,6 +2945,8 @@ final _balancedRoutines = <CorrectiveRoutine>[
           sets: 2,
           role: MoveRole.release,
           animation: FigureAnimation.upperBackReach,
+          videoAssetPath:
+              'assets/exercise/back_stretch_total25_hold14_88_reverse.mp4',
         ),
         activate: CorrectiveMove(
           title: '서서 Y 팔 들기',
@@ -2695,15 +2969,19 @@ final _balancedRoutines = <CorrectiveRoutine>[
           sets: 2,
           role: MoveRole.release,
           animation: FigureAnimation.hipFlexor,
+          videoAssetPath:
+              'assets/exercise/rectus_femoris_total25_hold15_5_reverse.mp4',
         ),
         activate: CorrectiveMove(
           title: '스탠딩 힙 익스텐션',
           target: '둔근',
           guide: '허리를 꺾지 말고 한쪽 다리를 뒤로 작게 뻗어 둔근에 2초 힘을 주세요.',
-          seconds: 20,
+          seconds: 25,
           sets: 2,
           role: MoveRole.activate,
           animation: FigureAnimation.gluteSet,
+          videoAssetPath:
+              'assets/exercise/glute_extension_total25_reverse_play_x3_ground_hold.mp4',
         ),
       ),
     ],
@@ -2712,7 +2990,12 @@ final _balancedRoutines = <CorrectiveRoutine>[
 
 List<_MoveOption> _stretchMoveOptions(MoveRole role) {
   final pairsByTitle = <String, CorrectivePair>{};
-  final routines = [..._forwardRoutines, ..._slouchRoutines, ..._balancedRoutines];
+  final routines = [
+    ..._forwardRoutines,
+    ..._slouchRoutines,
+    ..._tiltedRoutines,
+    ..._balancedRoutines,
+  ];
 
   for (final routine in routines) {
     for (final pair in routine.pairs) {
@@ -2755,30 +3038,6 @@ class _MoveOption {
 
 final _extraStretchPairs = <CorrectivePair>[
   CorrectivePair(
-    title: '벽 가슴 열기 → 벽 Y 팔 들기',
-    description: '벽을 이용해 앞가슴을 부드럽게 열고, 등·어깨 지지력을 깨워요.',
-    category: '벽 활용',
-    recommendationReason: '오래 앉아 굳기 쉬운 가슴과 어깨 앞쪽을 편하게 움직이는 데 도움이 되는 기본 조합이에요.',
-    release: CorrectiveMove(
-      title: '벽 짚고 가슴 열기',
-      target: '가슴·어깨 앞쪽',
-      guide: '벽에 손을 가볍게 대고 몸통을 반대쪽으로 천천히 열어요. 어깨가 아프면 범위를 줄여요.',
-      seconds: 20,
-      sets: 2,
-      role: MoveRole.release,
-      animation: FigureAnimation.chestOpen,
-    ),
-    activate: CorrectiveMove(
-      title: '벽 Y 팔 들기',
-      target: '등·어깨',
-      guide: '벽 가까이 서서 팔을 Y자로 올리고, 어깨를 아래로 길게 유지해요.',
-      seconds: 20,
-      sets: 2,
-      role: MoveRole.activate,
-      animation: FigureAnimation.wallY,
-    ),
-  ),
-  CorrectivePair(
     title: '기둥 몸통 열기 → 스탠딩 힙 익스텐션',
     description: '기둥이나 문틀을 가볍게 잡고 몸통을 열어준 뒤, 둔근을 깨워요.',
     category: '기둥 활용',
@@ -2796,10 +3055,12 @@ final _extraStretchPairs = <CorrectivePair>[
       title: '스탠딩 힙 익스텐션',
       target: '둔근',
       guide: '허리를 꺾지 말고 한쪽 다리를 뒤로 작게 뻗어 둔근에 2초 힘을 주세요.',
-      seconds: 20,
+      seconds: 25,
       sets: 2,
       role: MoveRole.activate,
       animation: FigureAnimation.gluteSet,
+      videoAssetPath:
+          'assets/exercise/glute_extension_total25_reverse_play_x3_ground_hold.mp4',
     ),
   ),
   CorrectivePair(
@@ -2825,31 +3086,6 @@ final _extraStretchPairs = <CorrectivePair>[
       sets: 2,
       role: MoveRole.activate,
       animation: FigureAnimation.scapularSet,
-    ),
-  ),
-  CorrectivePair(
-    title: '강한 등 말기 → 어깨 정리',
-    description: '등을 크게 둥글게 만드는 동작이 포함된 조합이에요.',
-    category: '주의 동작',
-    recommendationReason: '현재 자세 경향에서는 이미 말린 느낌을 키울 수 있어 기본 루틴으로 권하지 않아요.',
-    blockedProfileIds: const {'slouch'},
-    release: CorrectiveMove(
-      title: '서서 등 크게 말기',
-      target: '등',
-      guide: '팔을 앞으로 보내고 등을 가볍게 둥글게 만들어요.',
-      seconds: 15,
-      sets: 2,
-      role: MoveRole.release,
-      animation: FigureAnimation.upperBackReach,
-    ),
-    activate: CorrectiveMove(
-      title: '어깨 뒤로 천천히 돌리기',
-      target: '어깨',
-      guide: '어깨를 위·뒤·아래 순서로 천천히 크게 돌려주세요.',
-      seconds: 20,
-      sets: 2,
-      role: MoveRole.activate,
-      animation: FigureAnimation.shoulderRoll,
     ),
   ),
 ];
@@ -2916,12 +3152,14 @@ class CorrectivePair {
   });
 
   CorrectivePair copyWith({
+    String? title,
+    String? description,
     CorrectiveMove? release,
     CorrectiveMove? activate,
   }) {
     return CorrectivePair(
-      title: title,
-      description: description,
+      title: title ?? this.title,
+      description: description ?? this.description,
       release: release ?? this.release,
       activate: activate ?? this.activate,
       category: category,
@@ -2939,6 +3177,7 @@ class CorrectiveMove {
   final int sets;
   final MoveRole role;
   final FigureAnimation animation;
+  final String? videoAssetPath;
 
   const CorrectiveMove({
     required this.title,
@@ -2948,5 +3187,35 @@ class CorrectiveMove {
     required this.sets,
     required this.role,
     required this.animation,
+    this.videoAssetPath,
   });
+
+  /// 같은 종목은 어느 루틴에서 선택되어도 사용자가 만든 실사 가이드를
+  /// 우선 사용한다. 개별 루틴의 경로 누락으로 영상이 안 뜨는 일을 막는다.
+  String? get resolvedVideoAssetPath {
+    if (videoAssetPath != null) return videoAssetPath;
+    return switch (title) {
+      '목 옆 부드럽게 늘리기' =>
+        'assets/exercise/neck_stretch_clean_white_v2.mp4',
+      '서서 턱 당기기' =>
+        'assets/exercise/chin_tuck_pingpong_pause_white_crop_25s.mp4',
+      '서서 가슴 열기' =>
+        'assets/exercise/pec_stretch_clean_hold20_reverse.mp4',
+      '벽 없이 견갑 조이기' =>
+        'assets/exercise/scapular_retraction_pingpong_25s.mp4',
+      '서서 Y 팔 들기' =>
+        'assets/exercise/standing_y_raise_pingpong_25s.mp4',
+      '스탠딩 햄스트링 스트레칭' =>
+        'assets/exercise/standing_hamstring_stretch_pingpong_25s.mp4',
+      '서서 등 길게 늘리기' =>
+        'assets/exercise/back_stretch_total25_hold14_88_reverse.mp4',
+      '서서 대퇴직근 스트레칭' =>
+        'assets/exercise/rectus_femoris_total25_hold15_5_reverse.mp4',
+      '스탠딩 힙 익스텐션' =>
+        'assets/exercise/glute_extension_total25_reverse_play_x3_ground_hold.mp4',
+      '장요근 운동' =>
+        'assets/exercise/wall_supported_knee_raise_pingpong_25s.mp4',
+      _ => null,
+    };
+  }
 }

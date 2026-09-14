@@ -79,7 +79,11 @@ class _CompanionChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -199,16 +203,6 @@ class _StretchRecommendationScreenState
                       child: Column(
                         children: [
                           _StretchProfilePortrait(companion: _companion),
-                          const SizedBox(height: 12),
-                          Text(
-                            _routine.message,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              height: 1.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -238,8 +232,10 @@ class _StretchRecommendationScreenState
                             companionLabel: entry.key == 0
                                 ? _companion.explorer.name
                                 : _companion.pet.name,
-                            onSwap: () => _swapMove(entry.key, MoveRole.release),
-                            onInfo: () => _showRecommendationReason(entry.value),
+                            onSwap: () =>
+                                _swapMove(entry.key, MoveRole.release),
+                            onInfo: () =>
+                                _showRecommendationReason(entry.value),
                           ),
                       ],
                     ),
@@ -256,8 +252,10 @@ class _StretchRecommendationScreenState
                             companionLabel: entry.key == 0
                                 ? _companion.explorer.name
                                 : _companion.pet.name,
-                            onSwap: () => _swapMove(entry.key, MoveRole.activate),
-                            onInfo: () => _showRecommendationReason(entry.value),
+                            onSwap: () =>
+                                _swapMove(entry.key, MoveRole.activate),
+                            onInfo: () =>
+                                _showRecommendationReason(entry.value),
                           ),
                       ],
                     ),
@@ -383,20 +381,33 @@ class _StretchRecommendationScreenState
                   const SizedBox(width: 8),
                   Text(
                     isBlocked ? '왜 이 조합을 비추천하나요?' : '왜 이 조합을 추천하나요?',
-                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              Text(pair.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(
+                pair.title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: 6),
-              Text(pair.recommendationReason, style: const TextStyle(height: 1.5)),
+              Text(
+                pair.recommendationReason,
+                style: const TextStyle(height: 1.5),
+              ),
               const SizedBox(height: 12),
               Text(
                 isBlocked
                     ? '현재 자세 경향에는 부담을 키울 수 있어 기본 루틴에서 제외해요. 통증이 있으면 진행하지 마세요.'
                     : '측정으로 파악한 자세 경향을 바탕으로 우선순위를 정한 안내예요. 통증이 있으면 진행하지 마세요.',
-                style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.45),
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 13,
+                  height: 1.45,
+                ),
               ),
             ],
           ),
@@ -430,9 +441,19 @@ class _RoutinePart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 17)),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 17,
+            ),
+          ),
           const SizedBox(height: 3),
-          Text(caption, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+          Text(
+            caption,
+            style: const TextStyle(fontSize: 13, color: Colors.grey),
+          ),
           const SizedBox(height: 10),
           ...children,
         ],
@@ -463,21 +484,30 @@ class _RoutineMoveCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+      ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 16,
             backgroundColor: color.withValues(alpha: 0.13),
             foregroundColor: color,
-            child: Text('$number', style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              '$number',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(move.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(
+                  move.title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '$companionLabel · ${move.target} · ${move.sets}세트',
@@ -526,7 +556,10 @@ class StretchMovePickerScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
-          Text('$partTitle 바꾸기', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            '$partTitle 바꾸기',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 6),
           const Text(
             '오래 앉아 있는 날에 도움이 되는 동작이에요. 현재 자세 경향에 맞지 않는 항목은 회색으로 표시돼요.',
@@ -544,7 +577,9 @@ class StretchMovePickerScreen extends StatelessWidget {
                 if (isBlocked) {
                   ScaffoldMessenger.of(context)
                     ..hideCurrentSnackBar()
-                    ..showSnackBar(const SnackBar(content: Text('현재 자세 경향에는 비추천 스트레칭이에요!')));
+                    ..showSnackBar(
+                      const SnackBar(content: Text('현재 자세 경향에는 비추천 스트레칭이에요!')),
+                    );
                 } else if (!isCurrent) {
                   Navigator.pop(context, option.move);
                 }
@@ -574,7 +609,9 @@ class _PickerMoveCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final blockedColor = const Color(0xffC84D4D);
     final background = isBlocked ? const Color(0xffFFF4F3) : Colors.white;
-    final textColor = isBlocked ? const Color(0xffA84A4A) : const Color(0xff24232A);
+    final textColor = isBlocked
+        ? const Color(0xffA84A4A)
+        : const Color(0xff24232A);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: background,
@@ -589,7 +626,9 @@ class _PickerMoveCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                isBlocked ? Icons.thumb_down_alt_outlined : Icons.self_improvement_rounded,
+                isBlocked
+                    ? Icons.thumb_down_alt_outlined
+                    : Icons.self_improvement_rounded,
                 color: isBlocked ? blockedColor : const Color(0xff725AC1),
               ),
               const SizedBox(width: 12),
@@ -599,9 +638,21 @@ class _PickerMoveCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(option.move.title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor))),
+                        Expanded(
+                          child: Text(
+                            option.move.title,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
                         _PickerLabel(
-                          text: isBlocked ? '비추천' : isCurrent ? '현재 선택됨' : '추천',
+                          text: isBlocked
+                              ? '비추천'
+                              : isCurrent
+                              ? '현재 선택됨'
+                              : '추천',
                           color: isBlocked
                               ? blockedColor
                               : isCurrent
@@ -611,13 +662,18 @@ class _PickerMoveCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 5),
-                    Text(option.move.target, style: TextStyle(color: textColor)),
+                    Text(
+                      option.move.target,
+                      style: TextStyle(color: textColor),
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       option.reason,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isBlocked ? const Color(0xffA84A4A) : Colors.grey.shade700,
+                        color: isBlocked
+                            ? const Color(0xffA84A4A)
+                            : Colors.grey.shade700,
                         height: 1.4,
                       ),
                     ),
@@ -642,8 +698,18 @@ class _PickerLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
-      child: Text(text, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
@@ -1141,17 +1207,18 @@ class _TimedAssetGuideState extends State<_TimedAssetGuide>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _videoController = VideoPlayerController.asset(
-      widget.assetPath,
-    );
-    _videoController.initialize().then((_) {
-      if (!mounted) return;
-      _videoController.setVolume(0);
-      _syncPlayback();
-      setState(() {});
-    }).catchError((Object _) {
-      if (mounted) setState(() => _hasLoadError = true);
-    });
+    _videoController = VideoPlayerController.asset(widget.assetPath);
+    _videoController
+        .initialize()
+        .then((_) {
+          if (!mounted) return;
+          _videoController.setVolume(0);
+          _syncPlayback();
+          setState(() {});
+        })
+        .catchError((Object _) {
+          if (mounted) setState(() => _hasLoadError = true);
+        });
   }
 
   @override
@@ -1175,7 +1242,8 @@ class _TimedAssetGuideState extends State<_TimedAssetGuide>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed && _videoController.value.isPlaying) {
+    if (state != AppLifecycleState.resumed &&
+        _videoController.value.isPlaying) {
       _videoController.pause();
     }
   }
@@ -1210,10 +1278,15 @@ class _TimedAssetGuideState extends State<_TimedAssetGuide>
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xff725AC1)),
             )
-          : Center(
-              child: AspectRatio(
-                aspectRatio: _videoController.value.aspectRatio,
-                child: VideoPlayer(_videoController),
+          : ClipRect(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: _videoController.value.size.width,
+                  height: _videoController.value.size.height,
+                  child: VideoPlayer(_videoController),
+                ),
               ),
             ),
     );
@@ -1380,16 +1453,34 @@ class _ExplorerPetMotionPainter extends CustomPainter {
     final rightHand = isQuadStretch
         ? Offset(movingAnkle.dx + 1, movingAnkle.dy - 4)
         : Offset(167 + lean, 192);
-    _limb(canvas, shoulder + const Offset(-25, 0), leftElbow, 18, jacket, outline);
+    _limb(
+      canvas,
+      shoulder + const Offset(-25, 0),
+      leftElbow,
+      18,
+      jacket,
+      outline,
+    );
     _limb(canvas, leftElbow, leftHand, 15, jacket, outline);
     _hand(canvas, leftHand, skinPaint, outline);
-    _limb(canvas, shoulder + const Offset(25, 0), rightElbow, 18, jacket, outline);
+    _limb(
+      canvas,
+      shoulder + const Offset(25, 0),
+      rightElbow,
+      18,
+      jacket,
+      outline,
+    );
     _limb(canvas, rightElbow, rightHand, 15, jacket, outline);
     _hand(canvas, rightHand, skinPaint, outline);
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(head.dx, head.dy + 25), width: 20, height: 28),
+        Rect.fromCenter(
+          center: Offset(head.dx, head.dy + 25),
+          width: 20,
+          height: 28,
+        ),
         const Radius.circular(8),
       ),
       skinPaint,
@@ -1397,16 +1488,32 @@ class _ExplorerPetMotionPainter extends CustomPainter {
     canvas.drawCircle(head, 27, skinPaint);
     canvas.drawCircle(head, 27, outline);
     canvas.drawArc(
-      Rect.fromCenter(center: Offset(head.dx, head.dy - 6), width: 56, height: 48),
+      Rect.fromCenter(
+        center: Offset(head.dx, head.dy - 6),
+        width: 56,
+        height: 48,
+      ),
       math.pi,
       math.pi,
       true,
       hair,
     );
-    canvas.drawCircle(Offset(head.dx - 10, head.dy + 2), 3.1, Paint()..color = const Color(0xff20212A));
-    canvas.drawCircle(Offset(head.dx + 10, head.dy + 2), 3.1, Paint()..color = const Color(0xff20212A));
+    canvas.drawCircle(
+      Offset(head.dx - 10, head.dy + 2),
+      3.1,
+      Paint()..color = const Color(0xff20212A),
+    );
+    canvas.drawCircle(
+      Offset(head.dx + 10, head.dy + 2),
+      3.1,
+      Paint()..color = const Color(0xff20212A),
+    );
     canvas.drawArc(
-      Rect.fromCenter(center: Offset(head.dx, head.dy + 11), width: 14, height: 9),
+      Rect.fromCenter(
+        center: Offset(head.dx, head.dy + 11),
+        width: 14,
+        height: 9,
+      ),
       0.1,
       math.pi - 0.2,
       false,
@@ -1433,16 +1540,28 @@ class _ExplorerPetMotionPainter extends CustomPainter {
     final face = Paint()..color = skin.petFace;
 
     canvas.drawOval(
-      Rect.fromCenter(center: center + const Offset(0, 23), width: 62, height: 75),
+      Rect.fromCenter(
+        center: center + const Offset(0, 23),
+        width: 62,
+        height: 75,
+      ),
       body,
     );
     canvas.drawOval(
-      Rect.fromCenter(center: center + const Offset(0, 23), width: 62, height: 75),
+      Rect.fromCenter(
+        center: center + const Offset(0, 23),
+        width: 62,
+        height: 75,
+      ),
       outline,
     );
     _drawPetEars(canvas, center, skin, outline);
     canvas.drawOval(
-      Rect.fromCenter(center: center + const Offset(0, 10), width: 49, height: 40),
+      Rect.fromCenter(
+        center: center + const Offset(0, 10),
+        width: 49,
+        height: 40,
+      ),
       face,
     );
 
@@ -1450,13 +1569,21 @@ class _ExplorerPetMotionPainter extends CustomPainter {
     canvas.drawCircle(center + const Offset(-10, 8), 3.2, eye);
     canvas.drawCircle(center + const Offset(10, 8), 3.2, eye);
     canvas.drawOval(
-      Rect.fromCenter(center: center + const Offset(0, 19), width: 8, height: 5),
+      Rect.fromCenter(
+        center: center + const Offset(0, 19),
+        width: 8,
+        height: 5,
+      ),
       Paint()..color = skin.petNose,
     );
     // Matching explorer jacket: the pet is part of the same animated rig.
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: center + const Offset(0, 37), width: 54, height: 34),
+        Rect.fromCenter(
+          center: center + const Offset(0, 37),
+          width: 54,
+          height: 34,
+        ),
         const Radius.circular(14),
       ),
       Paint()..color = skin.jacket,
@@ -1470,8 +1597,21 @@ class _ExplorerPetMotionPainter extends CustomPainter {
     );
 
     final legLift = isQuadStretch ? 16 * pulse : 8 * pulse;
-    _petLeg(canvas, center + const Offset(-14, 58), center + Offset(-18, 70 - legLift), body, outline);
-    _petLeg(canvas, center + const Offset(14, 58), center + Offset(19 + 10 * pulse, 70 - (isQuadStretch ? legLift : 18 * pulse)), body, outline);
+    _petLeg(
+      canvas,
+      center + const Offset(-14, 58),
+      center + Offset(-18, 70 - legLift),
+      body,
+      outline,
+    );
+    _petLeg(
+      canvas,
+      center + const Offset(14, 58),
+      center +
+          Offset(19 + 10 * pulse, 70 - (isQuadStretch ? legLift : 18 * pulse)),
+      body,
+      outline,
+    );
   }
 
   void _drawPetEars(
@@ -1514,15 +1654,45 @@ class _ExplorerPetMotionPainter extends CustomPainter {
       return;
     }
     if (skin.petKind == _PetKind.panda) {
-      canvas.drawCircle(center + const Offset(-20, -10), 12, Paint()..color = const Color(0xff20212A));
-      canvas.drawCircle(center + const Offset(20, -10), 12, Paint()..color = const Color(0xff20212A));
-      canvas.drawOval(Rect.fromCenter(center: center + const Offset(-10, 8), width: 15, height: 11), Paint()..color = const Color(0xff20212A));
-      canvas.drawOval(Rect.fromCenter(center: center + const Offset(10, 8), width: 15, height: 11), Paint()..color = const Color(0xff20212A));
+      canvas.drawCircle(
+        center + const Offset(-20, -10),
+        12,
+        Paint()..color = const Color(0xff20212A),
+      );
+      canvas.drawCircle(
+        center + const Offset(20, -10),
+        12,
+        Paint()..color = const Color(0xff20212A),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center + const Offset(-10, 8),
+          width: 15,
+          height: 11,
+        ),
+        Paint()..color = const Color(0xff20212A),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center + const Offset(10, 8),
+          width: 15,
+          height: 11,
+        ),
+        Paint()..color = const Color(0xff20212A),
+      );
       return;
     }
     // Penguin's small crown feathers.
-    canvas.drawLine(center + const Offset(-5, -10), center + const Offset(-10, -22), outline);
-    canvas.drawLine(center + const Offset(2, -10), center + const Offset(7, -22), outline);
+    canvas.drawLine(
+      center + const Offset(-5, -10),
+      center + const Offset(-10, -22),
+      outline,
+    );
+    canvas.drawLine(
+      center + const Offset(2, -10),
+      center + const Offset(7, -22),
+      outline,
+    );
   }
 
   void _drawMotionCue(
@@ -1537,34 +1707,55 @@ class _ExplorerPetMotionPainter extends CustomPainter {
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
     final rect = isQuadStretch
-        ? Rect.fromCenter(
-            center: const Offset(177, 226),
-            width: 66,
-            height: 96,
-          )
+        ? Rect.fromCenter(center: const Offset(177, 226), width: 66, height: 96)
         : Rect.fromCenter(
             center: const Offset(175, 262),
             width: 88,
             height: 52,
           );
-    canvas.drawArc(rect, isQuadStretch ? -1.1 : 3.45, isQuadStretch ? 1.1 : 1.0 + pulse * 0.2, false, cue);
+    canvas.drawArc(
+      rect,
+      isQuadStretch ? -1.1 : 3.45,
+      isQuadStretch ? 1.1 : 1.0 + pulse * 0.2,
+      false,
+      cue,
+    );
   }
 
-  void _limb(Canvas canvas, Offset from, Offset to, double width, Paint fill, Paint outline) {
+  void _limb(
+    Canvas canvas,
+    Offset from,
+    Offset to,
+    double width,
+    Paint fill,
+    Paint outline,
+  ) {
     canvas
-      ..drawLine(from, to, Paint()
-        ..color = outline.color
-        ..strokeWidth = width + 4
-        ..strokeCap = StrokeCap.round)
-      ..drawLine(from, to, Paint()
-        ..color = fill.color
-        ..strokeWidth = width
-        ..strokeCap = StrokeCap.round);
+      ..drawLine(
+        from,
+        to,
+        Paint()
+          ..color = outline.color
+          ..strokeWidth = width + 4
+          ..strokeCap = StrokeCap.round,
+      )
+      ..drawLine(
+        from,
+        to,
+        Paint()
+          ..color = fill.color
+          ..strokeWidth = width
+          ..strokeCap = StrokeCap.round,
+      );
   }
 
   void _shoe(Canvas canvas, Offset ankle, Color color, Paint outline) {
     final shoe = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: ankle + const Offset(6, 4), width: 29, height: 14),
+      Rect.fromCenter(
+        center: ankle + const Offset(6, 4),
+        width: 29,
+        height: 14,
+      ),
       const Radius.circular(7),
     );
     canvas
@@ -1578,7 +1769,13 @@ class _ExplorerPetMotionPainter extends CustomPainter {
       ..drawCircle(point, 8, outline);
   }
 
-  void _petLeg(Canvas canvas, Offset from, Offset to, Paint fill, Paint outline) {
+  void _petLeg(
+    Canvas canvas,
+    Offset from,
+    Offset to,
+    Paint fill,
+    Paint outline,
+  ) {
     _limb(canvas, from, to, 10, fill, outline);
   }
 
@@ -1619,13 +1816,53 @@ class _ExplorerMotionSkin {
   static _ExplorerMotionSkin forProfile(String profileId) {
     return switch (profileId) {
       'forward' => const _ExplorerMotionSkin(
-          jacket: Color(0xff8FCABE), trim: Color(0xffE6F1EC), pants: Color(0xffD8CCB8), shoe: Color(0xff537C78), hair: Color(0xff20242D), accent: Color(0xffE07A3A), petBody: Color(0xffE87531), petFace: Color(0xffFFF1D9), petNose: Color(0xff38241E), petKind: _PetKind.fox),
+        jacket: Color(0xff8FCABE),
+        trim: Color(0xffE6F1EC),
+        pants: Color(0xffD8CCB8),
+        shoe: Color(0xff537C78),
+        hair: Color(0xff20242D),
+        accent: Color(0xffE07A3A),
+        petBody: Color(0xffE87531),
+        petFace: Color(0xffFFF1D9),
+        petNose: Color(0xff38241E),
+        petKind: _PetKind.fox,
+      ),
       'slouch' => const _ExplorerMotionSkin(
-          jacket: Color(0xffA87858), trim: Color(0xffF4E5D2), pants: Color(0xff664939), shoe: Color(0xff9A8067), hair: Color(0xff593F33), accent: Color(0xffC18A58), petBody: Color(0xff8A5535), petFace: Color(0xffF2D7B0), petNose: Color(0xff34221D), petKind: _PetKind.hedgehog),
+        jacket: Color(0xffA87858),
+        trim: Color(0xffF4E5D2),
+        pants: Color(0xff664939),
+        shoe: Color(0xff9A8067),
+        hair: Color(0xff593F33),
+        accent: Color(0xffC18A58),
+        petBody: Color(0xff8A5535),
+        petFace: Color(0xffF2D7B0),
+        petNose: Color(0xff34221D),
+        petKind: _PetKind.hedgehog,
+      ),
       'tilted' => const _ExplorerMotionSkin(
-          jacket: Color(0xff86518A), trim: Color(0xffF4E9DB), pants: Color(0xffE9DECE), shoe: Color(0xff9B7B91), hair: Color(0xff5A3E36), accent: Color(0xff9B6AC9), petBody: Color(0xff20212A), petFace: Color(0xffFFF8EC), petNose: Color(0xff292A30), petKind: _PetKind.panda),
+        jacket: Color(0xff86518A),
+        trim: Color(0xffF4E9DB),
+        pants: Color(0xffE9DECE),
+        shoe: Color(0xff9B7B91),
+        hair: Color(0xff5A3E36),
+        accent: Color(0xff9B6AC9),
+        petBody: Color(0xff20212A),
+        petFace: Color(0xffFFF8EC),
+        petNose: Color(0xff292A30),
+        petKind: _PetKind.panda,
+      ),
       _ => const _ExplorerMotionSkin(
-          jacket: Color(0xff243C67), trim: Color(0xffF2E9D7), pants: Color(0xff24354E), shoe: Color(0xff2D548A), hair: Color(0xff2B1F22), accent: Color(0xff8D6ADC), petBody: Color(0xff202737), petFace: Color(0xffF8F6EC), petNose: Color(0xffF2A62B), petKind: _PetKind.penguin),
+        jacket: Color(0xff243C67),
+        trim: Color(0xffF2E9D7),
+        pants: Color(0xff24354E),
+        shoe: Color(0xff2D548A),
+        hair: Color(0xff2B1F22),
+        accent: Color(0xff8D6ADC),
+        petBody: Color(0xff202737),
+        petFace: Color(0xffF8F6EC),
+        petNose: Color(0xffF2A62B),
+        petKind: _PetKind.penguin,
+      ),
     };
   }
 }
@@ -2558,11 +2795,24 @@ CorrectiveRoutine _applyPandaLateralRecommendation(
     animation: FigureAnimation.hipFlexor,
     videoAssetPath: videoAssetPath,
   );
+  final hipRotationMove = CorrectiveMove(
+    title: '$sideLabel 고관절 회전 가동성',
+    target: '$sideLabel 고관절',
+    guide: '의자에 앉아 무릎을 모은 채, $sideLabel 고관절이 부드럽게 회전하는 범위까지만 천천히 움직여요.',
+    seconds: 25,
+    sets: 2,
+    role: MoveRole.activate,
+    animation: FigureAnimation.hipFlexor,
+    videoAssetPath: side == PandaLeanSide.left
+        ? 'assets/exercise/seated_hip_rotation_right_pingpong_25s.mp4'
+        : 'assets/exercise/seated_hip_rotation_left_pingpong_25s.mp4',
+  );
   final pairs = [...routine.pairs];
   pairs[1] = pairs[1].copyWith(
     title: '$sideLabel 요방형근 이완 → $sideLabel 고관절 회전',
     description: '한쪽으로 굳은 $sideLabel 옆허리를 늘린 뒤, 같은 쪽 고관절 회전 움직임을 부드럽게 되찾아요.',
     release: quadratusLumborumMove,
+    activate: hipRotationMove,
   );
   return routine.copyWith(pairs: pairs);
 }
@@ -2584,7 +2834,8 @@ final _forwardRoutines = <CorrectiveRoutine>[
           sets: 2,
           role: MoveRole.release,
           animation: FigureAnimation.chestOpen,
-          videoAssetPath: 'assets/exercise/pec_stretch_clean_hold20_reverse.mp4',
+          videoAssetPath:
+              'assets/exercise/pec_stretch_clean_hold20_reverse.mp4',
         ),
         activate: CorrectiveMove(
           title: '벽 없이 견갑 조이기',
@@ -2618,8 +2869,7 @@ final _forwardRoutines = <CorrectiveRoutine>[
           sets: 2,
           role: MoveRole.activate,
           animation: FigureAnimation.hipFlexor,
-          videoAssetPath:
-              'assets/exercise/standing_hip_hinge_pingpong_25s.mp4',
+          videoAssetPath: 'assets/exercise/standing_hip_hinge_pingpong_25s.mp4',
         ),
       ),
     ],
@@ -2677,8 +2927,7 @@ final _forwardRoutines = <CorrectiveRoutine>[
           sets: 2,
           role: MoveRole.activate,
           animation: FigureAnimation.hipFlexor,
-          videoAssetPath:
-              'assets/exercise/standing_hip_hinge_pingpong_25s.mp4',
+          videoAssetPath: 'assets/exercise/standing_hip_hinge_pingpong_25s.mp4',
         ),
       ),
     ],
@@ -2780,13 +3029,13 @@ final _slouchRoutines = <CorrectiveRoutine>[
           animation: FigureAnimation.chestOpen,
         ),
         activate: CorrectiveMove(
-          title: '어깨 뒤로 천천히 돌리기',
-          target: '어깨',
-          guide: '어깨를 위·뒤·아래 순서로 천천히 크게 돌려주세요.',
+          title: '벽 없이 견갑 조이기',
+          target: '등·어깨',
+          guide: '팔꿈치를 천천히 뒤로 보내며 날개뼈를 가볍게 모아주세요.',
           seconds: 20,
           sets: 2,
           role: MoveRole.activate,
-          animation: FigureAnimation.shoulderRoll,
+          animation: FigureAnimation.scapularSet,
         ),
       ),
       _hedgehogLowerBodyPair,
@@ -2805,7 +3054,8 @@ final _hedgehogLowerBodyPair = CorrectivePair(
     sets: 2,
     role: MoveRole.release,
     animation: FigureAnimation.hipFlexor,
-    videoAssetPath: 'assets/exercise/standing_hamstring_stretch_pingpong_25s.mp4',
+    videoAssetPath:
+        'assets/exercise/standing_hamstring_stretch_pingpong_25s.mp4',
   ),
   activate: CorrectiveMove(
     title: '장요근 운동',
@@ -2815,7 +3065,8 @@ final _hedgehogLowerBodyPair = CorrectivePair(
     sets: 2,
     role: MoveRole.activate,
     animation: FigureAnimation.hipFlexor,
-    videoAssetPath: 'assets/exercise/wall_supported_knee_raise_pingpong_25s.mp4',
+    videoAssetPath:
+        'assets/exercise/wall_supported_knee_raise_pingpong_25s.mp4',
   ),
 );
 
@@ -2918,13 +3169,13 @@ final _balancedRoutines = <CorrectiveRoutine>[
           animation: FigureAnimation.chestOpen,
         ),
         activate: CorrectiveMove(
-          title: '어깨 뒤로 천천히 돌리기',
-          target: '어깨',
-          guide: '어깨를 부드럽게 크게 뒤로 돌리며 목 힘을 빼주세요.',
+          title: '벽 없이 견갑 조이기',
+          target: '등·어깨',
+          guide: '팔꿈치를 천천히 뒤로 보내며 날개뼈를 가볍게 모아주세요.',
           seconds: 20,
           sets: 2,
           role: MoveRole.activate,
-          animation: FigureAnimation.shoulderRoll,
+          animation: FigureAnimation.scapularSet,
         ),
       ),
     ],
@@ -3010,6 +3261,7 @@ List<_MoveOption> _stretchMoveOptions(MoveRole role) {
   final optionsByTitle = <String, _MoveOption>{};
   for (final pair in pairsByTitle.values) {
     final move = role == MoveRole.release ? pair.release : pair.activate;
+    if (move.resolvedVideoAssetPath == null) continue;
     optionsByTitle.putIfAbsent(
       move.title,
       () => _MoveOption(
@@ -3038,18 +3290,21 @@ class _MoveOption {
 
 final _extraStretchPairs = <CorrectivePair>[
   CorrectivePair(
-    title: '기둥 몸통 열기 → 스탠딩 힙 익스텐션',
-    description: '기둥이나 문틀을 가볍게 잡고 몸통을 열어준 뒤, 둔근을 깨워요.',
+    title: '요방형근 이완 → 스탠딩 힙 익스텐션',
+    description: '요방형근을 부드럽게 늘린 뒤, 둔근을 깨워요.',
     category: '기둥 활용',
-    recommendationReason: '앉아 있는 시간이 긴 날, 몸통 움직임과 골반 주변의 가벼운 활성화를 함께 챙길 수 있는 조합이에요.',
+    recommendationReason:
+        '앉아 있는 시간이 긴 날, 옆허리 움직임과 골반 주변의 가벼운 활성화를 함께 챙길 수 있는 조합이에요.',
     release: CorrectiveMove(
-      title: '기둥 잡고 몸통 열기',
-      target: '옆구리·등',
-      guide: '기둥이나 문틀을 한 손으로 잡고, 몸을 반대 방향으로 살짝 돌려 옆구리를 편하게 열어요.',
+      title: '요방형근 스트레칭',
+      target: '요방형근',
+      guide: '벽을 한 손으로 짚고, 다리 위치는 그대로 둔 채 옆허리를 안쪽으로 부드럽게 늘려요.',
       seconds: 20,
       sets: 2,
       role: MoveRole.release,
       animation: FigureAnimation.upperBackReach,
+      videoAssetPath:
+          'assets/exercise/quadratus_lumborum_wall_right_pingpong_25s.mp4',
     ),
     activate: CorrectiveMove(
       title: '스탠딩 힙 익스텐션',
@@ -3147,7 +3402,8 @@ class CorrectivePair {
     required this.release,
     required this.activate,
     this.category = '자세 리셋',
-    this.recommendationReason = '오래 앉아 있는 동안 굳기 쉬운 부위를 부드럽게 움직이고, 편한 자세를 유지하는 데 도움을 주는 조합이에요.',
+    this.recommendationReason =
+        '오래 앉아 있는 동안 굳기 쉬운 부위를 부드럽게 움직이고, 편한 자세를 유지하는 데 도움을 주는 조합이에요.',
     this.blockedProfileIds = const {},
   });
 
@@ -3195,16 +3451,12 @@ class CorrectiveMove {
   String? get resolvedVideoAssetPath {
     if (videoAssetPath != null) return videoAssetPath;
     return switch (title) {
-      '목 옆 부드럽게 늘리기' =>
-        'assets/exercise/neck_stretch_clean_white_v2.mp4',
+      '목 옆 부드럽게 늘리기' => 'assets/exercise/neck_stretch_clean_white_v2.mp4',
       '서서 턱 당기기' =>
         'assets/exercise/chin_tuck_pingpong_pause_white_crop_25s.mp4',
-      '서서 가슴 열기' =>
-        'assets/exercise/pec_stretch_clean_hold20_reverse.mp4',
-      '벽 없이 견갑 조이기' =>
-        'assets/exercise/scapular_retraction_pingpong_25s.mp4',
-      '서서 Y 팔 들기' =>
-        'assets/exercise/standing_y_raise_pingpong_25s.mp4',
+      '서서 가슴 열기' => 'assets/exercise/pec_stretch_clean_hold20_reverse.mp4',
+      '벽 없이 견갑 조이기' => 'assets/exercise/scapular_retraction_pingpong_25s.mp4',
+      '서서 Y 팔 들기' => 'assets/exercise/standing_y_raise_pingpong_25s.mp4',
       '스탠딩 햄스트링 스트레칭' =>
         'assets/exercise/standing_hamstring_stretch_pingpong_25s.mp4',
       '서서 등 길게 늘리기' =>
@@ -3213,8 +3465,7 @@ class CorrectiveMove {
         'assets/exercise/rectus_femoris_total25_hold15_5_reverse.mp4',
       '스탠딩 힙 익스텐션' =>
         'assets/exercise/glute_extension_total25_reverse_play_x3_ground_hold.mp4',
-      '장요근 운동' =>
-        'assets/exercise/wall_supported_knee_raise_pingpong_25s.mp4',
+      '장요근 운동' => 'assets/exercise/wall_supported_knee_raise_pingpong_25s.mp4',
       _ => null,
     };
   }

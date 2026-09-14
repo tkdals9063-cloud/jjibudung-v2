@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 
@@ -62,26 +64,6 @@ class _PlayedScreenState extends State<PlayedScreen> {
         children: [
           Card(
             child: ListTile(
-              leading: const Icon(Icons.star, color: Colors.amber),
-              title: const Text("현재 포인트"),
-              trailing: Text("$_point pt"),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.workspace_premium),
-              title: const Text("현재 레벨"),
-              trailing: Text(getLevel()),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Card(
-            child: ListTile(
               leading: const Icon(Icons.schedule),
               title: const Text("오늘 공부시간"),
               trailing: Text(
@@ -102,26 +84,82 @@ class _PlayedScreenState extends State<PlayedScreen> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 24),
 
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.accessibility_new),
-              title: const Text("평균 자세 유지율"),
-              trailing: Text("${_postureRate.toStringAsFixed(1)}%"),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Card(
-            child: ListTile(
-              leading: const Icon(
-                Icons.local_fire_department,
-                color: Colors.red,
-              ),
-              title: const Text("연속 공부"),
-              trailing: Text("$_streak일"),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              children: [
+                ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                  child: Column(
+                    children: [
+                      Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.star, color: Colors.amber),
+                          title: const Text("현재 포인트"),
+                          trailing: Text("$_point pt"),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.workspace_premium),
+                          title: const Text("현재 레벨"),
+                          trailing: Text(getLevel()),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.accessibility_new),
+                          title: const Text("평균 자세 유지율"),
+                          trailing: Text("${_postureRate.toStringAsFixed(1)}%"),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        child: ListTile(
+                          leading: const Icon(
+                            Icons.local_fire_department,
+                            color: Colors.red,
+                          ),
+                          title: const Text("연속 공부"),
+                          trailing: Text("$_streak일"),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    child: const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              size: 28,
+                              color: Colors.black54,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              '찌뿌둥 체어 연동 후 확인할 수 있어요.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

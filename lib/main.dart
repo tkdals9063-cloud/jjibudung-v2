@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/app_theme.dart';
 import 'core/supabase_config.dart';
+import 'main_navigation.dart';
 import 'screens/login_screen.dart';
 
 void main() async {
@@ -24,7 +25,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      // Supabase가 로컬에 저장해둔 세션이 있으면 로그인 화면을 건너뛴다.
+      home: Supabase.instance.client.auth.currentSession != null
+          ? const MainNavigation()
+          : const LoginScreen(),
     );
   }
 }

@@ -248,6 +248,71 @@ class StorageService {
   }
 
   // ===========================================================
+  // 친구
+  // ===========================================================
+
+  static Future<String> loadMyFriendCode() async {
+    final row = await _client
+        .from('profiles')
+        .select('friend_code')
+        .eq('user_id', _uid)
+        .maybeSingle();
+    return (row?['friend_code'] as String?) ?? '';
+  }
+
+  static Future<String> loadMyNickname() async {
+    final row = await _client
+        .from('profiles')
+        .select('nickname')
+        .eq('user_id', _uid)
+        .maybeSingle();
+    return (row?['nickname'] as String?) ?? '';
+  }
+
+  static Future<void> saveMyNickname(String nickname) async {
+    await _client.rpc('set_my_nickname', params: {'p_nickname': nickname});
+  }
+
+  /// 코드로 친구 요청을 보낸다. 코드가 없거나, 본인 코드거나, 이미
+  /// 요청/친구 상태면 [PostgrestException]을 던진다.
+  static Future<void> sendFriendRequest(String friendCode) async {
+    await _client.rpc(
+      'send_friend_request',
+      params: {'p_friend_code': friendCode},
+    );
+  }
+
+  /// 나한테 온 대기 중인 친구 요청 목록.
+  static Future<List<Map<String, dynamic>>> loadPendingFriendRequests() async {
+    final rows = await _client.rpc('get_pending_incoming_requests');
+    return List<Map<String, dynamic>>.from(rows as List);
+  }
+
+  static Future<void> respondFriendRequest({
+    required String requestId,
+    required bool accept,
+  }) async {
+    await _client
+        .from('friend_requests')
+        .update({'status': accept ? 'accepted' : 'declined'})
+        .eq('id', requestId);
+  }
+
+  /// 수락된 친구 목록(코드 + 닉네임 + 자세 타입만).
+  static Future<List<Map<String, dynamic>>> loadFriends() async {
+    final rows = await _client.rpc('get_friends_with_posture');
+    return List<Map<String, dynamic>>.from(rows as List);
+  }
+
+  /// 친구 관계를 끊는다. 다시 친구가 되려면 요청/수락을 다시 거쳐야 한다.
+  static Future<void> removeFriend(String friendUserId) async {
+    await _client.rpc(
+      'remove_friend',
+      params: {'p_friend_user_id': friendUserId},
+    );
+  }
+
+  // ===========================================================
   // 설정 (로컬 전용, 기기별로 달라도 되는 값)
   // ===========================================================
 

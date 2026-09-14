@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -16,12 +17,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _vibrationEnabled = true;
   bool _pushNotificationEnabled = true;
   String _versionLabel = '';
+  String _friendCode = '';
+  String _nickname = '';
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _loadVersion();
+    _loadFriendCode();
+    _loadNickname();
   }
 
   Future<void> _loadSettings() async {
@@ -34,6 +39,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _vibrationEnabled = vibrationEnabled;
       _pushNotificationEnabled = pushNotificationEnabled;
     });
+  }
+
+  Future<void> _loadFriendCode() async {
+    final code = await StorageService.loadMyFriendCode();
+    if (!mounted) return;
+    setState(() => _friendCode = code);
+  }
+
+  Future<void> _loadNickname() async {
+    final nickname = await StorageService.loadMyNickname();
+    if (!mounted) return;
+    setState(() => _nickname = nickname);
+  }
+
+  Future<void> _editNickname() async {
+    final controller = TextEditingController(text: _nickname);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('이름 설정'),
+        content: TextField(
+          controller: controller,
+          maxLength: 12,
+          decoration: const InputDecoration(hintText: '친구에게 보여질 이름'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null) return;
+
+    await StorageService.saveMyNickname(result);
+    if (!mounted) return;
+    setState(() => _nickname = result);
   }
 
   Future<void> _loadVersion() async {
@@ -107,6 +155,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     setState(() => _pushNotificationEnabled = value);
                     StorageService.savePushNotificationEnabled(value);
                   },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: const Text('내 이름'),
+                  subtitle: Text(_nickname.isEmpty ? '설정 안 함' : _nickname),
+                  trailing: const Icon(Icons.edit_outlined),
+                  onTap: _editNickname,
+                ),
+                ListTile(
+                  leading: const Icon(Icons.badge_outlined),
+                  title: const Text('내 친구 코드'),
+                  subtitle: Text(_friendCode.isEmpty ? '불러오는 중...' : _friendCode),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.copy_outlined),
+                    onPressed: _friendCode.isEmpty
+                        ? null
+                        : () {
+                            Clipboard.setData(
+                              ClipboardData(text: _friendCode),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('친구 코드를 복사했어요.'),
+                              ),
+                            );
+                          },
+                  ),
                 ),
                 const Divider(),
                 ListTile(

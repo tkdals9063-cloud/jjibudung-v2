@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/app_tab_controller.dart';
+import 'screens/friends_screen.dart';
 import 'screens/played_screen.dart';
 import 'screens/posture_profile_screen.dart';
 import 'screens/reward_screen.dart';
@@ -15,6 +16,7 @@ class MainNavigation extends StatelessWidget {
     PlayedScreen(),
     PostureProfileScreen(),
     RewardScreen(),
+    FriendsScreen(),
     SettingsScreen(),
   ];
 
@@ -37,6 +39,7 @@ class MainNavigation extends StatelessWidget {
                 label: '스트레칭',
               ),
               BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: '상점'),
+              BottomNavigationBarItem(icon: Icon(Icons.people), label: '친구'),
               BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
             ],
           ),

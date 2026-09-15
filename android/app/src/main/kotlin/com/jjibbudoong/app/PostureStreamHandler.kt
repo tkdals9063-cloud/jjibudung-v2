@@ -1,4 +1,4 @@
-package com.example.jjibudung_v2
+package com.jjibbudoong.app
 
 import android.content.Context
 import android.hardware.Sensor

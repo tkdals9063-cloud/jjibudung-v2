@@ -88,6 +88,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
     }
   }
 
+  String _requesterDisplayName(Map<String, dynamic> request) {
+    final code = request['requester_friend_code'] as String? ?? '';
+    final nickname = request['requester_nickname'] as String?;
+    return (nickname == null || nickname.isEmpty) ? code : nickname;
+  }
+
   Future<void> _respond(String requestId, bool accept) async {
     await StorageService.respondFriendRequest(
       requestId: requestId,
@@ -279,7 +285,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.person_add_alt_1),
-                  title: Text('${request['requester_friend_code']} 님의 요청'),
+                  title: Text('${_requesterDisplayName(request)} 님의 요청'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

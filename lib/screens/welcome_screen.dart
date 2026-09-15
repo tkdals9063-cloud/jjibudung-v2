@@ -10,6 +10,7 @@ import '../widgets/posture_profile_summary_card.dart';
 import '../widgets/posture_profile_unlock_card.dart';
 import '../widgets/study_dashboard_card.dart';
 import '../widgets/summary_card.dart';
+import 'friends_screen.dart';
 import 'preparation_screen.dart';
 import 'work_screen.dart';
 
@@ -35,6 +36,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   List<bool> _weekUsage = List<bool>.filled(7, false);
   bool _hasPostureProfile = false;
   String _postureProfileId = 'balanced';
+  int _friendCount = 0;
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final hasPostureProfile =
         await StorageService.loadHasInitialPostureProfile();
     final postureProfileId = await StorageService.loadPostureProfileId();
+    final friends = await StorageService.loadFriends();
 
     if (!mounted) return;
 
@@ -60,6 +63,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       _weekUsage = weekUsage;
       _hasPostureProfile = hasPostureProfile;
       _postureProfileId = postureProfileId;
+      _friendCount = friends.length;
     });
   }
 
@@ -68,14 +72,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (hour < 12) return '좋은 아침입니다 ☀️';
     if (hour < 18) return '좋은 오후입니다 🌤';
     return '좋은 저녁입니다 🌙';
-  }
-
-  String _levelName() {
-    if (_point >= 1500) return 'Lv.5 마스터';
-    if (_point >= 700) return 'Lv.4 고인물';
-    if (_point >= 300) return 'Lv.3 중수';
-    if (_point >= 100) return 'Lv.2 초보자';
-    return 'Lv.1 슬라임';
   }
 
   Future<void> _openPreparation() async {
@@ -102,6 +98,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   void _openStore() {
     AppTabController.currentIndex.value = 3;
+  }
+
+  Future<void> _openFriends() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FriendsScreen()),
+    );
+
+    if (mounted) _loadData();
   }
 
   void _showChairComingSoon() {
@@ -269,11 +274,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               Row(
                 children: [
                   SummaryCard(
-                    icon: Icons.eco,
+                    icon: Icons.people,
                     iconColor: Colors.greenAccent,
-                    title: '현재 레벨',
-                    value: 'Lv.${_levelName().substring(3, 4)}',
-                    subtitle: _levelName().substring(5),
+                    title: '친구',
+                    value: '$_friendCount명',
+                    subtitle: '자세 친구 확인',
+                    onTap: _openFriends,
                   ),
                   const SizedBox(width: 12),
                   SummaryCard(

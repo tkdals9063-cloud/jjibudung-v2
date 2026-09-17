@@ -4,6 +4,7 @@ import 'package:vibration/vibration.dart';
 
 import '../core/app_tab_controller.dart';
 import '../models/posture_profile_info.dart';
+import '../models/posture_companion.dart';
 import '../services/storage_service.dart';
 import 'preparation_screen.dart';
 import 'stretch_recommendation_screen.dart';
@@ -27,6 +28,7 @@ class _PostureProfileScreenState extends State<PostureProfileScreen> {
   double _pullProgress = 0;
   double? _lastPointerY;
   String _profileId = 'balanced';
+  CompanionSelection _selection = CompanionSelection.balanced;
 
   @override
   void initState() {
@@ -48,11 +50,12 @@ class _PostureProfileScreenState extends State<PostureProfileScreen> {
 
   Future<void> _loadProfile() async {
     final hasProfile = await StorageService.loadHasInitialPostureProfile();
-    final profileId = await StorageService.loadPostureProfileId();
+    final selection = await StorageService.loadCompanionSelection();
     if (!mounted) return;
     setState(() {
       _hasProfile = hasProfile;
-      _profileId = profileId;
+      _selection = selection;
+      _profileId = selection.routineId;
       _isLoading = false;
     });
   }
@@ -63,7 +66,10 @@ class _PostureProfileScreenState extends State<PostureProfileScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => StretchRecommendationScreen(profileId: _profileId),
+        builder: (_) => StretchRecommendationScreen(
+          profileId: _profileId,
+          selection: _selection,
+        ),
       ),
     );
     if (!mounted) return;
@@ -194,7 +200,7 @@ class _PostureProfileScreenState extends State<PostureProfileScreen> {
       );
     }
 
-    final profile = postureProfileInfoFor(_profileId);
+    final profile = postureProfileInfoForSelection(_selection);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -336,7 +342,7 @@ class _ProfileRequiredView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              '홈에서 START를 누르고 5초 기준 자세 측정을 하면\n나만의 자세 친구가 나타나요.',
+              '홈에서 START를 누른 뒤 5초 동안 휴대폰을 넣고,\n바르게 서서 다음 5초 동안 측정하면 자세 친구가 나타나요.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.black54, height: 1.5),
             ),
@@ -364,17 +370,19 @@ class _ProfileHero extends StatelessWidget {
             flex: 4,
             child: Align(
               alignment: Alignment.bottomLeft,
-              child: Image.asset(
-                profile.imagePath,
-                height: 214,
-                fit: BoxFit.contain,
-                alignment: Alignment.bottomCenter,
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.image_not_supported_outlined,
-                  size: 42,
-                  color: Color(0xff725AC1),
-                ),
-              ),
+              child: profile.imagePath == null
+                  ? const Icon(Icons.image_not_supported_outlined, size: 42)
+                  : Image.asset(
+                      profile.imagePath!,
+                      height: 214,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.bottomCenter,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 42,
+                        color: Color(0xff725AC1),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 12),
@@ -468,4 +476,3 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
-

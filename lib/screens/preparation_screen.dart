@@ -1,66 +1,35 @@
 import 'package:flutter/material.dart';
 
 import 'calibration_screen.dart';
-import 'package:flutter/foundation.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class PreparationScreen extends StatelessWidget {
   const PreparationScreen({super.key});
-  Future<bool> _requestNotificationPermission(BuildContext context) async {
-    if (defaultTargetPlatform != TargetPlatform.android) {
-      return true;
-    }
-
-    final currentStatus = await Permission.notification.status;
-
-    if (currentStatus.isGranted) {
-      return true;
-    }
-
-    if (!context.mounted) return false;
-
-    final shouldRequest = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('백그라운드 자세 측정 권한'),
-          content: const Text(
-            '앱을 나가도 자세 측정을 계속하고, '
-            '상단 알림에 측정 시간을 표시하려면 알림 권한이 필요해요.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('나중에'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('권한 허용하기'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldRequest != true) return false;
-
-    final result = await Permission.notification.request();
-
-    if (result.isGranted) return true;
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('알림 권한을 허용하면 백그라운드 측정이 가능해요.')),
-      );
-    }
-
-    return false;
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("자세 준비"), centerTitle: true),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+        child: SizedBox(
+          height: 58,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.play_arrow),
+            label: const Text(
+              "기준 자세 측정 시작",
+              style: TextStyle(fontSize: 18),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CalibrationScreen(),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -71,7 +40,7 @@ class PreparationScreen extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 const Icon(
-                  Icons.self_improvement,
+                  Icons.accessibility_new,
                   size: 90,
                   color: Color(0xff725AC1),
                 ),
@@ -87,22 +56,22 @@ class PreparationScreen extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 const Text(
-                  "정확한 측정을 위해\n아래 내용을 확인해주세요.",
+                  "처음 5초는 휴대폰을 넣는 준비 시간이에요.\n다음 5초에 측정하고 진동으로 완료를 알려드려요.",
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey, fontSize: 16),
                 ),
 
                 const SizedBox(height: 35),
 
-                _guideTile(Icons.chair_alt, "허리를 곧게 펴고 의자 깊숙이 앉아주세요."),
+                _guideTile(Icons.accessibility_new, "바르게 서서 양발을 편하게 놓아주세요."),
 
-                _guideTile(Icons.phone_android, "휴대폰을 바지 앞주머니에 넣어주세요."),
+                _guideTile(Icons.phone_android, "휴대폰 상단은 아래로, 화면은 몸쪽을 향하게 바지 앞주머니에 넣어주세요."),
 
-                _guideTile(Icons.accessibility_new, "양발은 바닥에 편하게 놓아주세요."),
+                _guideTile(Icons.visibility_off_outlined, "준비 시간이 끝나면 눈을 감고 5초 동안 가만히 서 있어주세요."),
 
                 _guideTile(
-                  Icons.sentiment_satisfied_alt,
-                  "어깨에 힘을 빼고 자연스럽게 앉아주세요.",
+                  Icons.vibration,
+                  "측정이 끝나면 진동으로 알려드려요.",
                 ),
 
                 const SizedBox(height: 30),
@@ -120,7 +89,7 @@ class PreparationScreen extends StatelessWidget {
                             SizedBox(width: 8),
 
                             Text(
-                              "왜 주머니에 넣나요?",
+                              "휴대폰 측정 기준",
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -129,7 +98,7 @@ class PreparationScreen extends StatelessWidget {
                         const SizedBox(height: 15),
 
                         Text(
-                          "휴대폰이 몸과 가까울수록\n몸의 기울기를 더 정확하게 측정할 수 있습니다.",
+                          "지금은 휴대폰의 앞뒤·좌우 각도로 자세 친구를 추정해요.\n의자 연동 기능이 준비되면 의자 센서 값으로 측정할 예정이에요.",
                           style: TextStyle(
                             color: Colors.grey.shade700,
                             height: 1.5,
@@ -140,32 +109,6 @@ class PreparationScreen extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 40),
-
-                SizedBox(
-                  height: 58,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text(
-                      "기준 자세 측정 시작",
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    onPressed: () async {
-                      final allowed = await _requestNotificationPermission(
-                        context,
-                      );
-
-                      if (!allowed || !context.mounted) return;
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CalibrationScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
               ],
             ),
           ),

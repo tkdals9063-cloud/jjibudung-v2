@@ -44,12 +44,12 @@ class PostureProfileUnlockCard extends StatelessWidget {
                     ),
                     SizedBox(height: 6),
                     Text(
-                      'START를 누르고 5초 동안 편하게 앉아\n기준 자세를 측정해보세요.',
+                      'START를 누른 뒤 5초 안에 휴대폰을 주머니에 넣고\n바르게 서서 다음 5초 동안 측정해보세요.',
                       style: TextStyle(height: 1.4, color: Colors.black54),
                     ),
                     SizedBox(height: 7),
                     Text(
-                      '5초 기준 자세 측정하기 →',
+                      '준비 5초 + 측정 5초 시작하기 →',
                       style: TextStyle(
                         color: Color(0xff725AC1),
                         fontWeight: FontWeight.w700,

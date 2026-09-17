@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/posture_companion.dart';
 
 class StorageService {
   StorageService._();
@@ -10,9 +11,20 @@ class StorageService {
   static const String todayGoodPostureTimeKey = 'today_good_posture_time';
   static const String vibrationEnabledKey = 'vibration_enabled';
   static const String pushNotificationEnabledKey = 'push_notification_enabled';
+  static const String stretchActivateFirstKey = 'stretch_activate_first';
 
   static const int phoneDailyStretchLimit = 1;
   static const int stretchRoutinePoint = 10;
+
+  static Future<bool> loadStretchActivateFirst() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(stretchActivateFirstKey) ?? true;
+  }
+
+  static Future<void> saveStretchActivateFirst(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(stretchActivateFirstKey, value);
+  }
 
   static SupabaseClient get _client => Supabase.instance.client;
 
@@ -60,12 +72,15 @@ class StorageService {
       (prefs.getInt(todayGoodPostureTimeKey) ?? 0) + goodPostureSeconds,
     );
 
-    await _client.rpc('save_study_result', params: {
-      'p_study_seconds': studySeconds,
-      'p_good_posture_seconds': goodPostureSeconds,
-      'p_earned_point': earnedPoint,
-      'p_posture_rate': postureRate,
-    });
+    await _client.rpc(
+      'save_study_result',
+      params: {
+        'p_study_seconds': studySeconds,
+        'p_good_posture_seconds': goodPostureSeconds,
+        'p_earned_point': earnedPoint,
+        'p_posture_rate': postureRate,
+      },
+    );
   }
 
   static Future<List<bool>> loadCurrentWeekUsage() async {
@@ -97,17 +112,30 @@ class StorageService {
   // 자세 프로필
   // ===========================================================
 
-  // 기준 자세 측정이 끝나면 자세 친구를 해금한다.
-  // 사용자는 이 순간 바른 자세로 앉아 있으므로 초기 타입은 균형형으로 둔다.
+  // 5초 휴대폰 각도 측정 결과로 자세 친구를 저장한다.
   static Future<void> saveInitialPostureProfile({
     required double baselineAngle,
     required double baselineRoll,
+    required CompanionSelection selection,
   }) async {
-    await _client.from('profiles').update({
-      'initial_baseline_angle': baselineAngle,
-      'initial_baseline_roll': baselineRoll,
-      'posture_profile_id': 'balanced',
-    }).eq('user_id', _uid);
+    try {
+      await _client.from('profiles').update({
+        'initial_baseline_angle': baselineAngle,
+        'initial_baseline_roll': baselineRoll,
+        'explorer_id': selection.explorerId,
+        'pet_id': selection.petId,
+      }).eq('user_id', _uid);
+    } on PostgrestException catch (error) {
+      if (!_missingCompanionColumns(error)) rethrow;
+      await _client.from('profiles').update({
+        'initial_baseline_angle': baselineAngle,
+        'initial_baseline_roll': baselineRoll,
+        'posture_profile_id': selection.routineId,
+      }).eq('user_id', _uid);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('companion_explorer_$_uid', selection.explorerId);
+    await prefs.setString('companion_pet_$_uid', selection.petId);
   }
 
   static Future<bool> loadHasInitialPostureProfile() async {
@@ -130,19 +158,58 @@ class StorageService {
         ? 'forward'
         : 'slouch';
 
-    await _client
-        .from('profiles')
-        .update({'posture_profile_id': profileId})
-        .eq('user_id', _uid);
+    final selection = CompanionSelection.fromLegacy(profileId);
+    try {
+      await _client.from('profiles').update({
+        'explorer_id': selection.explorerId,
+        'pet_id': selection.petId,
+      }).eq('user_id', _uid);
+    } on PostgrestException catch (error) {
+      if (!_missingCompanionColumns(error)) rethrow;
+      await _client.from('profiles').update({
+        'posture_profile_id': profileId,
+      }).eq('user_id', _uid);
+    }
   }
 
+  static Future<CompanionSelection> loadCompanionSelection() async {
+    try {
+      final row = await _client
+          .from('profiles')
+          .select('explorer_id, pet_id')
+          .eq('user_id', _uid)
+          .maybeSingle();
+      return CompanionSelection.fromIds(
+        row?['explorer_id'] as String?,
+        row?['pet_id'] as String?,
+      );
+    } on PostgrestException catch (error) {
+      if (!_missingCompanionColumns(error)) rethrow;
+      final row = await _client
+          .from('profiles')
+          .select('posture_profile_id')
+          .eq('user_id', _uid)
+          .maybeSingle();
+      final prefs = await SharedPreferences.getInstance();
+      final localExplorer = prefs.getString('companion_explorer_$_uid');
+      final localPet = prefs.getString('companion_pet_$_uid');
+      return CompanionSelection.fromIds(
+        localExplorer,
+        localPet,
+        legacyProfileId: row?['posture_profile_id'] as String?,
+      );
+    }
+  }
+
+  static bool _missingCompanionColumns(PostgrestException error) =>
+      (error.code == '42703' ||
+          error.code == 'PGRST204' ||
+          error.message.contains('"code":"42703"')) &&
+      (error.message.contains('explorer_id') ||
+          error.message.contains('pet_id'));
+
   static Future<String> loadPostureProfileId() async {
-    final row = await _client
-        .from('profiles')
-        .select('posture_profile_id')
-        .eq('user_id', _uid)
-        .maybeSingle();
-    return (row?['posture_profile_id'] as String?) ?? 'balanced';
+    return (await loadCompanionSelection()).routineId;
   }
 
   // ===========================================================
@@ -240,10 +307,7 @@ class StorageService {
 
   /// 포인트 차감(리워드 교환). 잔액이 부족하면 [PostgrestException]을 던진다.
   static Future<int> spendPoints(int amount) async {
-    final row = await _client.rpc(
-      'spend_points',
-      params: {'p_amount': amount},
-    );
+    final row = await _client.rpc('spend_points', params: {'p_amount': amount});
     return (row as Map)['point'] as int;
   }
 

@@ -41,7 +41,7 @@ class PetCompanion {
 class PostureCompanionPair {
   final ExplorerCompanion explorer;
   final PetCompanion pet;
-  final String imagePath;
+  final String? imagePath;
 
   const PostureCompanionPair({
     required this.explorer,
@@ -51,6 +51,95 @@ class PostureCompanionPair {
 
   String get code => '${explorer.code}-${pet.code}';
   String get name => '${explorer.name} + ${pet.name}';
+}
+
+/// Persist only these two IDs. All labels, images and routines derive from them.
+class CompanionSelection {
+  final String explorerId;
+  final String petId;
+
+  const CompanionSelection._(this.explorerId, this.petId);
+
+  static const balanced = CompanionSelection._('balanced', 'centered_penguin');
+
+  factory CompanionSelection.fromLegacy(String? profileId) =>
+      switch (profileId) {
+        'forward' => const CompanionSelection._(
+          'forward_head',
+          'posterior_hedgehog',
+        ),
+        'slouch' => const CompanionSelection._('rested', 'posterior_hedgehog'),
+        'tilted' => const CompanionSelection._('tilted', 'anterior_fox'),
+        _ => balanced,
+      };
+
+  factory CompanionSelection.fromIds(
+    String? explorerId,
+    String? petId, {
+    String? legacyProfileId,
+  }) {
+    if (explorerId == null || petId == null) {
+      return CompanionSelection.fromLegacy(legacyProfileId);
+    }
+    if (!explorers.containsKey(explorerId)) {
+      return balanced;
+    }
+    if (explorerId == 'balanced') return balanced;
+    if (petId == 'tilted_panda' ||
+        (explorerId == 'tilted' && petId == 'anterior_fox') ||
+        (explorerId != 'tilted' && petId == 'posterior_hedgehog')) {
+      return CompanionSelection._(explorerId, petId);
+    }
+    return CompanionSelection._(
+      explorerId,
+      explorerId == 'tilted' ? 'anterior_fox' : 'posterior_hedgehog',
+    );
+  }
+
+  String get routineId => switch (explorerId) {
+    'balanced' => 'balanced',
+    'rested' => 'slouch',
+    'tilted' => 'tilted',
+    _ => 'forward',
+  };
+
+  PostureCompanionPair get pair => PostureCompanionPair(
+    explorer: explorers[explorerId]!,
+    pet: pets[petId]!,
+    imagePath: standingImagePath,
+  );
+
+  String? get seatedImagePath => switch ((explorerId, petId)) {
+    ('balanced', 'centered_penguin') =>
+      'assets/characters/profile_balanced_penguin_seated.png',
+    ('forward_head', 'posterior_hedgehog') =>
+      'assets/characters/profile_turtle_hedgehog.png',
+    ('forward_head', 'tilted_panda') =>
+      'assets/characters/profile_turtle_panda.png',
+    ('rested', 'posterior_hedgehog') =>
+      'assets/characters/profile_rested_hedgehog.png',
+    ('rested', 'tilted_panda') => 'assets/characters/profile_rested_panda.png',
+    ('tilted', 'anterior_fox') => 'assets/characters/profile_meerkat_fox.png',
+    ('tilted', 'tilted_panda') => 'assets/characters/profile_meerkat_panda.png',
+    _ => null,
+  };
+
+  String? get standingImagePath => switch ((explorerId, petId)) {
+    ('balanced', 'centered_penguin') =>
+      'assets/characters/profile_balanced_penguin.png',
+    ('rested', 'posterior_hedgehog') =>
+      'assets/characters/profile_rested_hedgehog_standing.png',
+    ('forward_head', 'posterior_hedgehog') =>
+      'assets/characters/profile_turtle_hedgehog_standing.png',
+    ('tilted', 'anterior_fox') =>
+      'assets/characters/profile_meerkat_fox_standing.png',
+    ('forward_head', 'tilted_panda') =>
+      'assets/characters/profile_turtle_panda_standing.png',
+    ('rested', 'tilted_panda') =>
+      'assets/characters/profile_rested_panda_standing.png',
+    ('tilted', 'tilted_panda') => 'assets/characters/profile_tilted_panda.png',
+    _ => null,
+  };
 }
 
 class DailyRoutineRule {
@@ -182,26 +271,5 @@ const petDetectionRules = <PostureDetectionRule>[
 ];
 
 PostureCompanionPair pairForLegacyProfile(String profileId) {
-  return switch (profileId) {
-    'forward' => PostureCompanionPair(
-      explorer: explorers['tilted']!,
-      pet: pets['anterior_fox']!,
-      imagePath: 'assets/characters/profile_meerkat_fox.png',
-    ),
-    'slouch' => PostureCompanionPair(
-      explorer: explorers['rested']!,
-      pet: pets['posterior_hedgehog']!,
-      imagePath: 'assets/characters/profile_rested_hedgehog.png',
-    ),
-    'tilted' => PostureCompanionPair(
-      explorer: explorers['tilted']!,
-      pet: pets['tilted_panda']!,
-      imagePath: 'assets/characters/profile_meerkat_panda.png',
-    ),
-    _ => PostureCompanionPair(
-      explorer: explorers['balanced']!,
-      pet: pets['centered_penguin']!,
-      imagePath: 'assets/characters/profile_balanced_penguin.png',
-    ),
-  };
+  return CompanionSelection.fromLegacy(profileId).pair;
 }

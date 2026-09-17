@@ -115,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
         OAuthProvider.kakao,
         redirectTo: 'jjibudung://login-callback/',
         // 비즈니스 인증 완료로 account_email도 승인돼서 같이 요청한다.
-        scopes: 'account_email,profile_nickname',
+        scopes: 'account_email,profile_nickname,profile_image',
       );
       debugPrint('[Kakao] signInWithOAuth 브라우저 실행 결과: $launched');
     } on AuthException catch (e) {

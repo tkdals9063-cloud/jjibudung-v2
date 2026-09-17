@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../models/posture_companion.dart';
 import '../services/storage_service.dart';
 import '../utils/formatter.dart';
 import 'result_screen.dart';
@@ -11,8 +12,14 @@ import 'result_screen.dart';
 class WorkScreen extends StatefulWidget {
   final double? baselinePitch;
   final double? baselineRoll;
+  final CompanionSelection? selection;
 
-  const WorkScreen({super.key, this.baselinePitch, this.baselineRoll});
+  const WorkScreen({
+    super.key,
+    this.baselinePitch,
+    this.baselineRoll,
+    this.selection,
+  });
 
   @override
   State<WorkScreen> createState() => _WorkScreenState();
@@ -115,6 +122,17 @@ class _WorkScreenState extends State<WorkScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, height: 1.5),
               ),
+              if (widget.selection != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '5초 각도 추정: ${widget.selection!.pair.name}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xff725AC1),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
               const SizedBox(height: 32),
               Text(
                 Formatter.formatTime(_totalSeconds),

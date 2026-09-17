@@ -5,6 +5,7 @@ import 'package:marquee/marquee.dart';
 
 import '../data/quotes.dart';
 import '../core/app_tab_controller.dart';
+import '../models/posture_companion.dart';
 import '../services/storage_service.dart';
 import '../widgets/posture_profile_summary_card.dart';
 import '../widgets/posture_profile_unlock_card.dart';
@@ -35,7 +36,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   int _point = 0;
   List<bool> _weekUsage = List<bool>.filled(7, false);
   bool _hasPostureProfile = false;
-  String _postureProfileId = 'balanced';
+  CompanionSelection _selection = CompanionSelection.balanced;
   int _friendCount = 0;
 
   @override
@@ -51,7 +52,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final weekUsage = await StorageService.loadCurrentWeekUsage();
     final hasPostureProfile =
         await StorageService.loadHasInitialPostureProfile();
-    final postureProfileId = await StorageService.loadPostureProfileId();
+    final selection = await StorageService.loadCompanionSelection();
     final friends = await StorageService.loadFriends();
 
     if (!mounted) return;
@@ -62,7 +63,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       _point = point;
       _weekUsage = weekUsage;
       _hasPostureProfile = hasPostureProfile;
-      _postureProfileId = postureProfileId;
+      _selection = selection;
       _friendCount = friends.length;
     });
   }
@@ -311,7 +312,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
               const SizedBox(height: 16),
               if (_hasPostureProfile)
-                PostureProfileSummaryCard(profileId: _postureProfileId)
+                PostureProfileSummaryCard(profileId: _selection.routineId)
               else
                 PostureProfileUnlockCard(onPressed: _openPreparation),
               const SizedBox(height: 24),

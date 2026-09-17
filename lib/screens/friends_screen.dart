@@ -2,18 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/posture_profile_info.dart';
+import '../models/posture_companion.dart';
 import '../services/storage_service.dart';
-
-// 친구 목록 카드의 작은 아바타 전용 이미지. 코드/이름/소개 문구는
-// posture_profile_info.dart의 것을 그대로 써서 스트레칭 탭과 항상 일치시킨다.
-String _avatarImagePathFor(String postureProfileId) {
-  return switch (postureProfileId) {
-    'forward' => 'assets/characters/avatar_forward_fox.png',
-    'slouch' => 'assets/characters/avatar_rested_hedgehog.png',
-    'tilted' => 'assets/characters/avatar_tilted_panda.png',
-    _ => 'assets/characters/avatar_balanced_penguin.png',
-  };
-}
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -28,6 +18,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
   bool _isSending = false;
   List<Map<String, dynamic>> _pendingRequests = [];
   List<Map<String, dynamic>> _friends = [];
+  String _myNickname = '';
+  CompanionSelection _mySelection = CompanionSelection.balanced;
+  bool _profileLoaded = false;
 
   @override
   void initState() {
@@ -44,11 +37,16 @@ class _FriendsScreenState extends State<FriendsScreen> {
   Future<void> _loadAll() async {
     final requests = await StorageService.loadPendingFriendRequests();
     final friends = await StorageService.loadFriends();
+    final nickname = await StorageService.loadMyNickname();
+    final selection = await StorageService.loadCompanionSelection();
 
     if (!mounted) return;
     setState(() {
       _pendingRequests = requests;
       _friends = friends;
+      _myNickname = nickname;
+      _mySelection = selection;
+      _profileLoaded = true;
     });
   }
 
@@ -75,14 +73,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
       await StorageService.sendFriendRequest(code);
       _codeController.clear();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('친구 요청을 보냈어요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('친구 요청을 보냈어요.')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_errorMessage(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_errorMessage(e))));
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -127,7 +125,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
     await _loadAll();
   }
 
-  void _showProfileDialog(PostureProfileInfo profile, String displayName) {
+  void _showProfileDialog(
+    PostureProfileInfo profile,
+    String displayName,
+    String? standingImagePath, {
+    bool isMe = false,
+  }) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -137,21 +140,41 @@ class _FriendsScreenState extends State<FriendsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                '$displayName 님의 자세 친구',
-                style: const TextStyle(color: Colors.black54, fontSize: 13),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      isMe ? '내 자세 친구' : '$displayName 님의 자세 친구',
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '닫기',
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              Image.asset(
-                profile.imagePath,
-                height: 150,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.image_not_supported_outlined,
-                  size: 42,
-                  color: Color(0xff725AC1),
+              if (standingImagePath == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Text('이 조합의 선 자세 이미지를 준비 중이에요.'),
+                )
+              else
+                Image.asset(
+                  standingImagePath,
+                  height: 150,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 42,
+                    color: Color(0xff725AC1),
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               Text(
                 profile.code,
@@ -182,10 +205,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   height: 1.4,
                 ),
               ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('닫기'),
-              ),
             ],
           ),
         ),
@@ -200,14 +219,27 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final displayName = (nickname == null || nickname.isEmpty)
         ? friendCode
         : nickname;
-    final profileId = friend['posture_profile_id'] as String? ?? 'balanced';
-    final profile = postureProfileInfoFor(profileId);
+    final selection = CompanionSelection.fromIds(
+      friend['explorer_id'] as String?,
+      friend['pet_id'] as String?,
+      legacyProfileId: friend['posture_profile_id'] as String?,
+    );
+    final profile = postureProfileInfoForSelection(selection);
 
     return Card(
       child: ListTile(
-        onTap: () => _showProfileDialog(profile, displayName),
+        onTap: () => _showProfileDialog(
+          profile,
+          displayName,
+          selection.standingImagePath,
+        ),
         leading: CircleAvatar(
-          backgroundImage: AssetImage(_avatarImagePathFor(profileId)),
+          backgroundImage: selection.seatedImagePath == null
+              ? null
+              : AssetImage(selection.seatedImagePath!),
+          child: selection.seatedImagePath == null
+              ? const Icon(Icons.person_outline)
+              : null,
         ),
         title: Text(displayName),
         subtitle: Text(profile.code),
@@ -219,13 +251,133 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
+  Widget _buildMyCard() {
+    final profile = postureProfileInfoForSelection(_mySelection);
+    final displayName = _myNickname.isEmpty ? '나' : _myNickname;
+    final avatarUrl = _myAvatarUrl();
+    return Card(
+      color: const Color(0xffF3F0FF),
+      child: ListTile(
+        onTap: () => _showProfileDialog(
+          profile,
+          displayName,
+          _mySelection.standingImagePath,
+          isMe: true,
+        ),
+        leading: CircleAvatar(
+          child: ClipOval(
+            child: avatarUrl == null
+                ? _myAvatarFallback()
+                : Image.network(
+                    avatarUrl,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => _myAvatarFallback(),
+                  ),
+          ),
+        ),
+        title: Text(_myNickname.isEmpty ? '나' : '$displayName (나)'),
+        subtitle: Text(profile.code),
+        trailing: const Icon(Icons.chevron_right),
+      ),
+    );
+  }
+
+  String? _myAvatarUrl() {
+    final metadata = Supabase.instance.client.auth.currentUser?.userMetadata;
+    for (final key in ['avatar_url', 'picture', 'profile_image_url']) {
+      final value = metadata?[key];
+      if (value is String && Uri.tryParse(value)?.scheme == 'https') {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  Widget _myAvatarFallback() {
+    final imagePath = _mySelection.seatedImagePath;
+    return imagePath == null
+        ? const Icon(Icons.person_outline)
+        : Image.asset(imagePath, width: 40, height: 40, fit: BoxFit.cover);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('친구'), centerTitle: true),
+      bottomNavigationBar: Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 8,
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _codeController,
+                  textCapitalization: TextCapitalization.characters,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) {
+                    if (!_isSending) _sendRequest();
+                  },
+                  decoration: const InputDecoration(
+                    hintText: '친구 코드 입력 (예: AB12CD)',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(64, 50),
+                ),
+                onPressed: _isSending ? null : _sendRequest,
+                child: const Text('추가'),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          const Text(
+            '내 프로필',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          if (_profileLoaded)
+            _buildMyCard()
+          else
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          const SizedBox(height: 20),
+          const Text(
+            '내 친구',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          if (_friends.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text(
+                  '아직 친구가 없어요.\n친구 코드로 추가해보세요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            )
+          else
+            for (final friend in _friends) ...[
+              _buildFriendCard(friend),
+              const SizedBox(height: 8),
+            ],
+          const SizedBox(height: 28),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -245,35 +397,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          const Text(
-            '친구 코드로 추가하기',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _codeController,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    hintText: '친구 코드 입력 (예: AB12CD)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(64, 50),
-                ),
-                onPressed: _isSending ? null : _sendRequest,
-                child: const Text('추가'),
-              ),
-            ],
-          ),
-
           if (_pendingRequests.isNotEmpty) ...[
             const SizedBox(height: 28),
             const Text(
@@ -304,30 +427,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 ),
               ),
           ],
-
-          const SizedBox(height: 28),
-          const Text(
-            '내 친구',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-
-          if (_friends.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: Text(
-                  '아직 친구가 없어요.\n친구 코드로 추가해보세요.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            )
-          else
-            for (final friend in _friends) ...[
-              _buildFriendCard(friend),
-              const SizedBox(height: 8),
-            ],
         ],
       ),
     );

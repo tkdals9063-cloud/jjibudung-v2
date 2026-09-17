@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/posture_companion.dart';
@@ -13,11 +14,13 @@ enum PandaLeanSide { left, right }
 
 class StretchRecommendationScreen extends StatefulWidget {
   final String profileId;
+  final CompanionSelection? selection;
   final PandaLeanSide? pandaLeanSide;
 
   const StretchRecommendationScreen({
     super.key,
     this.profileId = 'balanced',
+    this.selection,
     this.pandaLeanSide,
   });
 
@@ -34,7 +37,7 @@ class _StretchProfilePortrait extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      alignment: WrapAlignment.center,
+      alignment: WrapAlignment.start,
       spacing: 8,
       runSpacing: 6,
       children: [
@@ -100,12 +103,21 @@ class _StretchRecommendationScreenState
   @override
   void initState() {
     super.initState();
-    _routine = _routineFor(
-      widget.profileId,
-      pandaLeanSide: widget.pandaLeanSide,
-    );
-    _companion = pairForLegacyProfile(widget.profileId);
+    final selection =
+        widget.selection ?? CompanionSelection.fromLegacy(widget.profileId);
+    _routine = _routineFor(selection, pandaLeanSide: widget.pandaLeanSide);
+    _companion = selection.pair;
     _loadCompletedCount();
+    _loadPartOrder();
+  }
+
+  Future<void> _loadPartOrder() async {
+    final activateFirst = await StorageService.loadStretchActivateFirst();
+    if (mounted) {
+      setState(() {
+        _routine = _routine.copyWith(activateFirst: activateFirst);
+      });
+    }
   }
 
   Future<void> _loadCompletedCount() async {
@@ -113,6 +125,39 @@ class _StretchRecommendationScreenState
     if (mounted) {
       setState(() => _completedToday = count);
     }
+  }
+
+  void _togglePartOrder() {
+    HapticFeedback.selectionClick();
+    final activateFirst = !_routine.activateFirst;
+    setState(() {
+      _routine = _routine.copyWith(activateFirst: activateFirst);
+    });
+    StorageService.saveStretchActivateFirst(activateFirst);
+  }
+
+  Widget _buildPart(MoveRole role, int position) {
+    final isRelease = role == MoveRole.release;
+    return _RoutinePart(
+      title: '$position. ${isRelease ? '이완' : '수축'} 파트',
+      caption: isRelease
+          ? '긴장된 부위를 부드럽게 늘려요'
+          : '자세를 지지할 근육에 가볍게 힘을 주세요',
+      color: isRelease ? const Color(0xff805EC5) : const Color(0xffD96B42),
+      onLongPress: _togglePartOrder,
+      children: [
+        for (final entry in _routine.pairs.asMap().entries)
+          _RoutineMoveCard(
+            number: entry.key + 1,
+            move: isRelease ? entry.value.release : entry.value.activate,
+            companionLabel: entry.key == 0
+                ? _companion.explorer.name
+                : _companion.pet.name,
+            onSwap: () => _swapMove(entry.key, role),
+            onInfo: () => _showRecommendationReason(entry.value),
+          ),
+      ],
+    );
   }
 
   Future<void> _startRoutine() async {
@@ -186,6 +231,40 @@ class _StretchRecommendationScreenState
 
     return Scaffold(
       appBar: AppBar(title: Text(_routine.title)),
+      bottomNavigationBar: completedToday == null
+          ? null
+          : SafeArea(
+              minimum: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '오늘 완료 $completedToday / '
+                    '${StorageService.phoneDailyStretchLimit}회 · '
+                    '완료 보상 +${StorageService.stretchRoutinePoint}P',
+                    style: TextStyle(
+                      color: isLimitReached ? Colors.orange : Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: _startRoutine,
+                      icon: Icon(
+                        isLimitReached
+                            ? Icons.lock_outline
+                            : Icons.play_arrow_rounded,
+                      ),
+                      label: Text(
+                        isLimitReached ? '추가 루틴은 체어 연동 후' : '맞춤 루틴 시작',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
       body: completedToday == null
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
@@ -194,19 +273,40 @@ class _StretchRecommendationScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xffF5F1FF),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Column(
-                        children: [
-                          _StretchProfilePortrait(companion: _companion),
-                        ],
-                      ),
+                    Row(
+                      children: [
+                        IconButton(
+                          tooltip: '안전 안내',
+                          icon: const Icon(
+                            Icons.error_outline,
+                            color: Color(0xffD69A00),
+                          ),
+                          onPressed: () => showDialog<void>(
+                            context: context,
+                            barrierDismissible: true,
+                            barrierColor: Colors.black26,
+                            builder: (dialogContext) => Dialog(
+                              backgroundColor: const Color(
+                                0xffFFF4CB,
+                              ).withValues(alpha: 0.93),
+                              child: const Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text(
+                                  '통증, 저림, 어지럼증이 느껴지시면\n바로 멈추세요!',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 17, height: 1.5),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: _StretchProfilePortrait(companion: _companion),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 10),
                     const Text(
                       '오늘의 맞춤 교정 루틴',
                       style: TextStyle(
@@ -220,92 +320,20 @@ class _StretchRecommendationScreenState
                       style: TextStyle(color: Colors.grey, height: 1.4),
                     ),
                     const SizedBox(height: 14),
-                    _RoutinePart(
-                      title: '1. 이완 파트',
-                      caption: '긴장된 부위를 부드럽게 늘려요',
-                      color: const Color(0xff805EC5),
-                      children: [
-                        for (final entry in _routine.pairs.asMap().entries)
-                          _RoutineMoveCard(
-                            number: entry.key + 1,
-                            move: entry.value.release,
-                            companionLabel: entry.key == 0
-                                ? _companion.explorer.name
-                                : _companion.pet.name,
-                            onSwap: () =>
-                                _swapMove(entry.key, MoveRole.release),
-                            onInfo: () =>
-                                _showRecommendationReason(entry.value),
-                          ),
-                      ],
+                    _buildPart(
+                      _routine.activateFirst
+                          ? MoveRole.activate
+                          : MoveRole.release,
+                      1,
                     ),
                     const SizedBox(height: 14),
-                    _RoutinePart(
-                      title: '2. 수축 파트',
-                      caption: '자세를 지지할 근육에 가볍게 힘을 주세요',
-                      color: const Color(0xffD96B42),
-                      children: [
-                        for (final entry in _routine.pairs.asMap().entries)
-                          _RoutineMoveCard(
-                            number: entry.key + 1,
-                            move: entry.value.activate,
-                            companionLabel: entry.key == 0
-                                ? _companion.explorer.name
-                                : _companion.pet.name,
-                            onSwap: () =>
-                                _swapMove(entry.key, MoveRole.activate),
-                            onInfo: () =>
-                                _showRecommendationReason(entry.value),
-                          ),
-                      ],
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xffFFF8E8),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.info_outline, color: Color(0xffA66B00)),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              '통증, 저림, 어지럼이 느껴지면 바로 멈추세요. '
-                              '이 루틴은 진단이나 치료를 대신하지 않아요.',
-                              style: TextStyle(fontSize: 13, height: 1.45),
-                            ),
-                          ),
-                        ],
-                      ),
+                    _buildPart(
+                      _routine.activateFirst
+                          ? MoveRole.release
+                          : MoveRole.activate,
+                      2,
                     ),
                     const SizedBox(height: 22),
-                    Text(
-                      '오늘 완료 $completedToday / '
-                      '${StorageService.phoneDailyStretchLimit}회 · '
-                      '완료 보상 +${StorageService.stretchRoutinePoint}P',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isLimitReached ? Colors.orange : Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        onPressed: _startRoutine,
-                        icon: Icon(
-                          isLimitReached
-                              ? Icons.lock_outline
-                              : Icons.play_arrow_rounded,
-                        ),
-                        label: Text(
-                          isLimitReached ? '추가 루틴은 체어 연동 후' : '약 4분 루틴 시작',
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -421,42 +449,58 @@ class _RoutinePart extends StatelessWidget {
   final String title;
   final String caption;
   final Color color;
+  final VoidCallback onLongPress;
   final List<Widget> children;
 
   const _RoutinePart({
     required this.title,
     required this.caption,
     required this.color,
+    required this.onLongPress,
     required this.children,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-              fontSize: 17,
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                ),
+                const Spacer(),
+                Icon(Icons.swap_vert_rounded, size: 16, color: color),
+                const SizedBox(width: 3),
+                Text(
+                  '길게 눌러 교체',
+                  style: TextStyle(color: color, fontSize: 11),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            caption,
-            style: const TextStyle(fontSize: 13, color: Colors.grey),
-          ),
-          const SizedBox(height: 10),
-          ...children,
-        ],
+            const SizedBox(height: 3),
+            Text(
+              caption,
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            ...children,
+          ],
+        ),
       ),
     );
   }
@@ -907,7 +951,8 @@ class _CorrectiveRoutineScreenState extends State<CorrectiveRoutineScreen>
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    isRelease ? '1단계 · 답답한 부위 이완' : '2단계 · 지지 근육 활성화',
+                    '${_moveIndex < widget.routine.pairs.length ? 1 : 2}단계 · '
+                    '${isRelease ? '답답한 부위 이완' : '지지 근육 활성화'}',
                     style: TextStyle(
                       color: isRelease
                           ? const Color(0xff805EC5)
@@ -1278,17 +1323,42 @@ class _TimedAssetGuideState extends State<_TimedAssetGuide>
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xff725AC1)),
             )
-          : ClipRect(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                child: SizedBox(
-                  width: _videoController.value.size.width,
-                  height: _videoController.value.size.height,
-                  child: VideoPlayer(_videoController),
-                ),
+          : _buildVideo(),
+    );
+  }
+
+  Widget _buildVideo() {
+    final size = _videoController.value.size;
+    final isWide =
+        size.width / size.height > 1.2 &&
+        !widget.assetPath.contains('forearm_pushup_plus_framed');
+    final video = SizedBox(
+      width: size.width,
+      height: size.height,
+      child: VideoPlayer(_videoController),
+    );
+
+    return ClipRect(
+      child: FittedBox(
+        // 가로 영상은 인물을 크게, 세로 영상은 머리와 발끝까지 표시한다.
+        fit: isWide ? BoxFit.cover : BoxFit.contain,
+        alignment: Alignment.center,
+        child: isWide
+            ? video
+            : ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.white,
+                    Colors.white,
+                    Colors.transparent,
+                  ],
+                  stops: [0, 0.04, 0.96, 1],
+                ).createShader(bounds),
+                child: video,
               ),
-            ),
+      ),
     );
   }
 }
@@ -2750,13 +2820,19 @@ class _ExerciseFigurePainter extends CustomPainter {
 }
 
 CorrectiveRoutine _routineFor(
-  String profileId, {
+  CompanionSelection selection, {
   PandaLeanSide? pandaLeanSide,
 }) {
-  final routines = switch (profileId) {
-    'forward' => _forwardRoutines,
-    'slouch' => _slouchRoutines,
+  final explorerRoutines = switch (selection.explorerId) {
+    'forward_head' => _forwardRoutines,
+    'rested' => _slouchRoutines,
     'tilted' => _tiltedRoutines,
+    _ => _balancedRoutines,
+  };
+  final petRoutines = switch (selection.petId) {
+    'anterior_fox' => _forwardRoutines,
+    'posterior_hedgehog' => _slouchRoutines,
+    'tilted_panda' => _tiltedRoutines,
     _ => _balancedRoutines,
   };
 
@@ -2765,9 +2841,23 @@ CorrectiveRoutine _routineFor(
       today.year * 10000 +
       today.month * 100 +
       today.day +
-      profileId.codeUnits.fold<int>(0, (sum, codeUnit) => sum + codeUnit);
-  final routine = routines[seed % routines.length];
-  if (profileId != 'tilted' || pandaLeanSide == null) return routine;
+      selection.pair.code.codeUnits.fold<int>(
+        0,
+        (sum, codeUnit) => sum + codeUnit,
+      );
+  final explorerRoutine = explorerRoutines[seed % explorerRoutines.length];
+  final petRoutine = petRoutines[seed % petRoutines.length];
+  final routine = CorrectiveRoutine(
+    title:
+        '${selection.pair.code} ${selection.explorerId == 'balanced' ? '유지' : '교정'} 루틴',
+    emoji: petRoutine.emoji,
+    message:
+        '${selection.pair.explorer.name}와 ${selection.pair.pet.name}을 위한 오늘의 조합이에요.',
+    pairs: [explorerRoutine.pairs.first, petRoutine.pairs.last],
+  );
+  if (selection.petId != 'tilted_panda' || pandaLeanSide == null) {
+    return routine;
+  }
   return _applyPandaLateralRecommendation(routine, pandaLeanSide);
 }
 
@@ -2783,14 +2873,14 @@ CorrectiveRoutine _applyPandaLateralRecommendation(
 
   final sideLabel = side == PandaLeanSide.left ? '우측' : '좌측';
   final videoAssetPath = side == PandaLeanSide.left
-      ? 'assets/exercise/quadratus_lumborum_wall_right_pingpong_25s.mp4'
-      : 'assets/exercise/quadratus_lumborum_wall_left_pingpong_25s.mp4';
+      ? 'assets/exercise/quadratus_lumborum_wall_right_framed_25s.mp4'
+      : 'assets/exercise/quadratus_lumborum_wall_left_framed_25s.mp4';
   final quadratusLumborumMove = CorrectiveMove(
     title: '$sideLabel 요방형근 스트레칭',
     target: '$sideLabel 요방형근',
     guide: '벽을 $sideLabel 손으로 짚고, 다리 위치는 그대로 둔 채 $sideLabel 허리를 안쪽으로 부드럽게 늘려요.',
     seconds: 25,
-    sets: 2,
+    sets: 1,
     role: MoveRole.release,
     animation: FigureAnimation.hipFlexor,
     videoAssetPath: videoAssetPath,
@@ -2804,8 +2894,8 @@ CorrectiveRoutine _applyPandaLateralRecommendation(
     role: MoveRole.activate,
     animation: FigureAnimation.hipFlexor,
     videoAssetPath: side == PandaLeanSide.left
-        ? 'assets/exercise/seated_hip_rotation_right_pingpong_25s.mp4'
-        : 'assets/exercise/seated_hip_rotation_left_pingpong_25s.mp4',
+        ? 'assets/exercise/seated_hip_rotation_right_framed_25s.mp4'
+        : 'assets/exercise/seated_hip_rotation_left_framed_25s.mp4',
   );
   final pairs = [...routine.pairs];
   pairs[1] = pairs[1].copyWith(
@@ -2831,7 +2921,7 @@ final _forwardRoutines = <CorrectiveRoutine>[
           target: '대흉근·소흉근',
           guide: '깍지 낀 손을 등 뒤로 보내고, 가슴을 편하게 열어주세요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.chestOpen,
           videoAssetPath:
@@ -2855,11 +2945,11 @@ final _forwardRoutines = <CorrectiveRoutine>[
           target: '장요근·대퇴직근',
           guide: '뒤쪽 무릎은 고정하고 앞무릎을 천천히 굽혀, 허리를 꺾지 않고 고관절 앞쪽을 늘려요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.hipFlexor,
           videoAssetPath:
-              'assets/exercise/half_kneeling_hip_flexor_pingpong_25s.mp4',
+              'assets/exercise/half_kneeling_hip_flexor_hold_return_25s.mp4',
         ),
         activate: CorrectiveMove(
           title: '스탠딩 힙 힌지',
@@ -2887,7 +2977,7 @@ final _forwardRoutines = <CorrectiveRoutine>[
           target: '광배근·능형근 주변',
           guide: '두 손을 앞으로 뻗으며 등을 둥글고 길게 늘려주세요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.upperBackReach,
           videoAssetPath:
@@ -2901,8 +2991,7 @@ final _forwardRoutines = <CorrectiveRoutine>[
           sets: 2,
           role: MoveRole.activate,
           animation: FigureAnimation.scapularSet,
-          videoAssetPath:
-              'assets/exercise/forearm_pushup_plus_pingpong_25s.mp4',
+          videoAssetPath: 'assets/exercise/forearm_pushup_plus_framed_25s.mp4',
         ),
       ),
       CorrectivePair(
@@ -2913,11 +3002,11 @@ final _forwardRoutines = <CorrectiveRoutine>[
           target: '장요근·대퇴직근',
           guide: '뒤쪽 무릎은 고정하고 앞무릎을 천천히 굽혀, 허리를 꺾지 않고 고관절 앞쪽을 늘려요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.hipFlexor,
           videoAssetPath:
-              'assets/exercise/half_kneeling_hip_flexor_pingpong_25s.mp4',
+              'assets/exercise/half_kneeling_hip_flexor_hold_return_25s.mp4',
         ),
         activate: CorrectiveMove(
           title: '스탠딩 힙 힌지',
@@ -2948,7 +3037,7 @@ final _slouchRoutines = <CorrectiveRoutine>[
           target: '가슴·어깨',
           guide: '양손을 등 뒤로 보내고, 숨을 내쉬며 가슴을 가볍게 열어요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.chestOpen,
         ),
@@ -2970,7 +3059,7 @@ final _slouchRoutines = <CorrectiveRoutine>[
           target: '등',
           guide: '두 손을 앞으로 보내며 등 뒤가 넓어지는 느낌을 찾아요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.upperBackReach,
           videoAssetPath:
@@ -3001,8 +3090,8 @@ final _slouchRoutines = <CorrectiveRoutine>[
           title: '목 옆 부드럽게 늘리기',
           target: '목',
           guide: '한쪽 귀를 어깨 가까이로 천천히 기울여요. 어깨는 내립니다.',
-          seconds: 20,
-          sets: 2,
+          seconds: 25,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.neckRelease,
         ),
@@ -3024,7 +3113,7 @@ final _slouchRoutines = <CorrectiveRoutine>[
           target: '가슴·어깨',
           guide: '손을 뒤로 보내고, 허리를 과하게 꺾지 않은 채 가슴을 열어요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.chestOpen,
         ),
@@ -3051,11 +3140,11 @@ final _hedgehogLowerBodyPair = CorrectivePair(
     target: '햄스트링',
     guide: '무릎을 과하게 잠그지 말고, 허리를 길게 유지한 채 엉덩이를 뒤로 보내요.',
     seconds: 25,
-    sets: 2,
+    sets: 1,
     role: MoveRole.release,
     animation: FigureAnimation.hipFlexor,
     videoAssetPath:
-        'assets/exercise/standing_hamstring_stretch_pingpong_25s.mp4',
+        'assets/exercise/standing_hamstring_stretch_hold_return_25s.mp4',
   ),
   activate: CorrectiveMove(
     title: '장요근 운동',
@@ -3083,8 +3172,8 @@ final _tiltedRoutines = <CorrectiveRoutine>[
           title: '목 옆 부드럽게 늘리기',
           target: '목',
           guide: '어깨 힘을 빼고, 머리를 한쪽으로 아주 천천히 기울여 목 옆을 늘려요.',
-          seconds: 20,
-          sets: 2,
+          seconds: 25,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.neckRelease,
         ),
@@ -3106,11 +3195,11 @@ final _tiltedRoutines = <CorrectiveRoutine>[
           target: '이상근·심부 외회전근',
           guide: '한쪽 발목을 반대쪽 무릎 위에 올리고, 등을 길게 유지한 채 무릎을 가볍게 아래로 눌러요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.hipFlexor,
           videoAssetPath:
-              'assets/exercise/seated_piriformis_stretch_pingpong_25s.mp4',
+              'assets/exercise/seated_piriformis_stretch_hold_return_25s.mp4',
         ),
         activate: CorrectiveMove(
           title: '스탠딩 힙 익스텐션',
@@ -3141,8 +3230,8 @@ final _balancedRoutines = <CorrectiveRoutine>[
           title: '목 옆 부드럽게 늘리기',
           target: '목',
           guide: '어깨 힘을 빼고, 머리를 좌우로 아주 천천히 기울여요.',
-          seconds: 20,
-          sets: 2,
+          seconds: 25,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.neckRelease,
         ),
@@ -3164,7 +3253,7 @@ final _balancedRoutines = <CorrectiveRoutine>[
           target: '가슴·어깨',
           guide: '등 뒤에서 손을 가볍게 잡고 숨을 내쉬며 가슴을 열어요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.chestOpen,
         ),
@@ -3193,7 +3282,7 @@ final _balancedRoutines = <CorrectiveRoutine>[
           target: '등',
           guide: '두 손을 앞에 두고 등 뒤가 길어지는 느낌으로 숨을 쉬어요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.upperBackReach,
           videoAssetPath:
@@ -3217,7 +3306,7 @@ final _balancedRoutines = <CorrectiveRoutine>[
           target: '대퇴직근',
           guide: '한쪽 발목을 잡아 뒤로 당기고, 무릎은 가까이 둔 채 앞허벅지를 편하게 늘려요.',
           seconds: 25,
-          sets: 2,
+          sets: 1,
           role: MoveRole.release,
           animation: FigureAnimation.hipFlexor,
           videoAssetPath:
@@ -3299,12 +3388,12 @@ final _extraStretchPairs = <CorrectivePair>[
       title: '요방형근 스트레칭',
       target: '요방형근',
       guide: '벽을 한 손으로 짚고, 다리 위치는 그대로 둔 채 옆허리를 안쪽으로 부드럽게 늘려요.',
-      seconds: 20,
-      sets: 2,
+      seconds: 25,
+      sets: 1,
       role: MoveRole.release,
       animation: FigureAnimation.upperBackReach,
       videoAssetPath:
-          'assets/exercise/quadratus_lumborum_wall_right_pingpong_25s.mp4',
+          'assets/exercise/quadratus_lumborum_wall_right_framed_25s.mp4',
     ),
     activate: CorrectiveMove(
       title: '스탠딩 힙 익스텐션',
@@ -3364,25 +3453,36 @@ class CorrectiveRoutine {
   final String emoji;
   final String message;
   final List<CorrectivePair> pairs;
+  final bool activateFirst;
 
   const CorrectiveRoutine({
     required this.title,
     required this.emoji,
     required this.message,
     required this.pairs,
+    this.activateFirst = true,
   });
 
-  List<CorrectiveMove> get moves => [
-    for (final pair in pairs) pair.release,
-    for (final pair in pairs) pair.activate,
-  ];
+  List<CorrectiveMove> get moves => activateFirst
+      ? [
+          for (final pair in pairs) pair.activate,
+          for (final pair in pairs) pair.release,
+        ]
+      : [
+          for (final pair in pairs) pair.release,
+          for (final pair in pairs) pair.activate,
+        ];
 
-  CorrectiveRoutine copyWith({List<CorrectivePair>? pairs}) {
+  CorrectiveRoutine copyWith({
+    List<CorrectivePair>? pairs,
+    bool? activateFirst,
+  }) {
     return CorrectiveRoutine(
       title: title,
       emoji: emoji,
       message: message,
       pairs: pairs ?? this.pairs,
+      activateFirst: activateFirst ?? this.activateFirst,
     );
   }
 }
@@ -3458,7 +3558,7 @@ class CorrectiveMove {
       '벽 없이 견갑 조이기' => 'assets/exercise/scapular_retraction_pingpong_25s.mp4',
       '서서 Y 팔 들기' => 'assets/exercise/standing_y_raise_pingpong_25s.mp4',
       '스탠딩 햄스트링 스트레칭' =>
-        'assets/exercise/standing_hamstring_stretch_pingpong_25s.mp4',
+        'assets/exercise/standing_hamstring_stretch_hold_return_25s.mp4',
       '서서 등 길게 늘리기' =>
         'assets/exercise/back_stretch_total25_hold14_88_reverse.mp4',
       '서서 대퇴직근 스트레칭' =>

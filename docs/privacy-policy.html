@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>찌뿌둥 개인정보처리방침</title>
+  <style>
+    :root { --brand:#725ac1; --ink:#211d2b; --muted:#696473; --line:#e8e3f1; --bg:#f8f6fc; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; line-height:1.75; }
+    main { width:min(880px,calc(100% - 32px)); margin:32px auto; padding:48px; background:#fff; border:1px solid var(--line); border-radius:24px; box-shadow:0 12px 36px rgba(69,49,110,.08); }
+    h1 { margin:0 0 8px; font-size:clamp(30px,5vw,44px); line-height:1.3; }
+    h2 { margin:42px 0 12px; padding-bottom:8px; border-bottom:2px solid var(--line); font-size:22px; }
+    h3 { margin:24px 0 6px; font-size:18px; }
+    p,li { font-size:16px; }
+    ul { padding-left:22px; }
+    .brand { color:var(--brand); font-weight:800; }
+    .meta,.note { color:var(--muted); }
+    .summary { margin:28px 0; padding:20px 22px; background:#f1edfb; border-radius:16px; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    th,td { padding:13px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#f5f2fb; }
+    a { color:#5d43b0; }
+    footer { margin-top:48px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); }
+    @media (max-width:640px) { main { margin:0; width:100%; padding:28px 20px; border:0; border-radius:0; } table,tbody,tr,th,td { display:block; } th { border-bottom:0; } td { margin-bottom:10px; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="brand">찌뿌둥</p>
+  <h1>개인정보처리방침</h1>
+  <p class="meta">시행일: 2026년 9월 20일</p>
+
+  <div class="summary">찌뿌둥 운영팀(이하 “운영팀”)은 이용자의 개인정보를 중요하게 생각하며, 관련 법령과 Google Play 정책에 따라 개인정보를 안전하게 처리합니다. 이 방침은 찌뿌둥 모바일 애플리케이션에 적용됩니다.</div>
+
+  <h2>1. 수집하는 정보</h2>
+  <table>
+    <thead><tr><th>구분</th><th>수집 항목</th><th>수집 목적</th></tr></thead>
+    <tbody>
+      <tr><td>계정 정보</td><td>이메일 주소, 암호화된 인증 정보, 이용자 식별자</td><td>회원가입, 로그인, 계정 관리</td></tr>
+      <tr><td>카카오 로그인 정보</td><td>카카오 이용자 식별자, 이메일, 닉네임, 프로필 이미지 및 이용자가 동의한 카카오 친구 식별자</td><td>카카오 로그인, 프로필 표시, 찌뿌둥에 가입한 카카오 친구 추천</td></tr>
+      <tr><td>프로필 및 친구 정보</td><td>닉네임, 친구 코드, 친구 요청·관계, 선택된 탐험가와 펫</td><td>자세 친구와 친구 기능 제공</td></tr>
+      <tr><td>자세 및 이용 기록</td><td>휴대전화 센서로 측정한 기울기·회전값, 기준 각도, 자세 유지 시간·비율, 총 기록 시간, 앱 사용일, 스트레칭 완료 기록, 포인트</td><td>자세 경향 추정, 통계, 맞춤 스트레칭, 보상 기능 제공</td></tr>
+      <tr><td>기기 내 설정</td><td>오늘의 기록, 진동·알림 설정, 루틴 순서 설정</td><td>앱 설정 유지 및 편의 기능 제공</td></tr>
+    </tbody>
+  </table>
+  <p class="note">휴대전화 센서 측정값은 자세 경향을 추정하기 위한 값이며 의료 진단 목적으로 사용되지 않습니다. 카메라, 마이크, 위치 정보는 수집하지 않습니다.</p>
+
+  <h2>2. 개인정보 이용 목적</h2>
+  <ul>
+    <li>계정 생성, 본인 인증과 로그인 상태 유지</li>
+    <li>자세 측정, 기록 통계, 맞춤 루틴과 캐릭터 조합 제공</li>
+    <li>친구 요청, 친구 목록과 카카오 친구 추천 기능 제공</li>
+    <li>포인트, 연속 이용일과 스트레칭 완료 내역 관리</li>
+    <li>서비스 안정성 확보, 오류 확인과 이용자 문의 처리</li>
+  </ul>
+
+  <h2>3. 제3자 서비스 및 처리 위탁</h2>
+  <h3>Supabase</h3>
+  <p>회원 인증, 데이터베이스 저장과 서버 운영을 위해 Supabase를 사용합니다. 계정 및 앱 이용 데이터가 Supabase의 보안 서버에서 처리될 수 있습니다.</p>
+  <h3>카카오</h3>
+  <p>이용자가 카카오 로그인을 선택하고 권한 제공에 동의한 경우, 로그인과 가입 친구 추천을 위해 카카오 계정 정보 및 친구 식별자를 처리합니다. 카카오 친구 목록 전체를 찌뿌둥의 일반 친구 목록으로 공개하지 않으며, 찌뿌둥 가입 여부 확인과 친구 추천에 사용합니다.</p>
+  <p>운영팀은 이용자의 개인정보를 판매하지 않습니다. 법령에 근거한 요청이 있거나 이용자가 별도로 동의한 경우를 제외하고 위 목적 외의 제3자에게 제공하지 않습니다.</p>
+
+  <h2>4. 보유 및 파기</h2>
+  <p>계정 및 서버 저장 데이터는 회원 탈퇴 또는 삭제 요청 처리 시까지 보유합니다. 삭제 요청이 확인되면 관련 법령상 보존 의무가 있는 경우를 제외하고 계정과 연결된 데이터를 지체 없이 삭제합니다. 기기에 저장된 설정과 오늘의 기록은 앱 삭제 또는 앱 데이터 삭제 시 제거됩니다. 백업 데이터는 서비스 운영상 필요한 제한된 기간 후 순차적으로 삭제될 수 있습니다.</p>
+
+  <h2>5. 계정 및 데이터 삭제</h2>
+  <p>계정과 관련 데이터 삭제를 원하면 아래 개인정보 문의 이메일로 가입한 이메일 주소와 함께 삭제 요청을 보내주세요. 본인 확인 후 계정, 프로필, 자세·사용 기록, 스트레칭 완료 기록과 친구 관계를 삭제합니다.</p>
+
+  <h2>6. 개인정보 보호 및 보안</h2>
+  <p>전송 구간 암호화(HTTPS), 인증 기반 접근 제어, 데이터베이스 행 단위 접근 정책 등을 사용하여 개인정보에 대한 무단 접근, 변경과 유출을 방지합니다. 비밀번호는 운영팀이 평문으로 저장하거나 열람하지 않습니다.</p>
+
+  <h2>7. 이용자의 권리</h2>
+  <p>이용자는 자신의 개인정보에 대한 열람, 정정, 삭제, 처리 제한 및 동의 철회를 요청할 수 있습니다. 카카오에서 제공한 권한은 카카오 계정 설정에서도 철회할 수 있습니다.</p>
+
+  <h2>8. 아동의 개인정보</h2>
+  <p>찌뿌둥은 만 14세 미만 아동을 대상으로 개인정보를 고의로 수집하지 않습니다. 만 14세 미만 아동의 정보가 수집된 사실을 알게 된 경우 확인 후 삭제합니다.</p>
+
+  <h2>9. 방침 변경</h2>
+  <p>서비스 또는 관련 법령이 변경되면 이 방침을 수정할 수 있습니다. 중요한 변경 사항은 앱 또는 이 페이지를 통해 안내합니다.</p>
+
+  <h2>10. 개인정보 문의</h2>
+  <p><strong>운영 주체:</strong> 찌뿌둥 운영팀<br><strong>이메일:</strong> <a href="mailto:tkdals9063@gmail.com">tkdals9063@gmail.com</a></p>
+
+  <footer>© 2026 찌뿌둥. All rights reserved.</footer>
+</main>
+</body>
+</html>

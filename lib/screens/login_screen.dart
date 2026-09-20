@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main_navigation.dart';
+import '../services/kakao_friends_service.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String? _authErrorText;
 
   late final StreamSubscription<AuthState> _authSubscription;
 
@@ -37,6 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
           'user=${data.session?.user.id}',
         );
         if (data.event == AuthChangeEvent.signedIn) {
+          KakaoFriendsService.syncKakaoIdentity();
           _goToMain();
         }
       },
@@ -75,10 +78,26 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+  String _translateLoginError(AuthException e) {
+    final message = e.message.toLowerCase();
+    if (e.code == 'invalid_credentials' ||
+        message.contains('invalid login credentials')) {
+      return '아이디 또는 비밀번호가 틀렸습니다.';
+    }
+    if (e.code == 'email_not_confirmed' ||
+        message.contains('email not confirmed')) {
+      return '이메일 인증이 필요해요. 메일함을 확인해주세요.';
+    }
+    return '로그인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+  }
+
   Future<void> _onSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _authErrorText = null;
+    });
 
     try {
       await Supabase.instance.client.auth.signInWithPassword(
@@ -88,13 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
       // 성공하면 _authSubscription의 signedIn 이벤트가 메인 화면으로 넘겨준다.
     } on AuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      setState(() => _authErrorText = _translateLoginError(e));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.')),
+      setState(
+        () => _authErrorText = '로그인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.',
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -115,7 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
         OAuthProvider.kakao,
         redirectTo: 'jjibudung://login-callback/',
         // 비즈니스 인증 완료로 account_email도 승인돼서 같이 요청한다.
-        scopes: 'account_email,profile_nickname,profile_image',
+        // friends: 카카오 친구 중 가입한 사람 추천 기능에 사용.
+        scopes: 'account_email,profile_nickname,profile_image,friends',
       );
       debugPrint('[Kakao] signInWithOAuth 브라우저 실행 결과: $launched');
     } on AuthException catch (e) {
@@ -166,11 +184,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '이메일',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(),
+                    errorText: _authErrorText != null ? '' : null,
                   ),
+                  onChanged: (_) {
+                    if (_authErrorText != null) {
+                      setState(() => _authErrorText = null);
+                    }
+                  },
                   validator: _validateEmail,
                 ),
                 const SizedBox(height: 16),
@@ -183,6 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: '비밀번호',
                     prefixIcon: const Icon(Icons.lock_outline),
                     border: const OutlineInputBorder(),
+                    errorText: _authErrorText,
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -194,6 +219,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                   ),
+                  onChanged: (_) {
+                    if (_authErrorText != null) {
+                      setState(() => _authErrorText = null);
+                    }
+                  },
                   onFieldSubmitted: (_) => _onSubmit(),
                   validator: _validatePassword,
                 ),

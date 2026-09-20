@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main_navigation.dart';
+import '../services/kakao_friends_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -21,6 +22,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePassword = true;
   bool _obscurePasswordConfirm = true;
   bool _isLoading = false;
+  String? _authErrorText;
 
   late final StreamSubscription<AuthState> _authSubscription;
 
@@ -38,6 +40,7 @@ class _SignupScreenState extends State<SignupScreen> {
           'user=${data.session?.user.id}',
         );
         if (data.event == AuthChangeEvent.signedIn) {
+          KakaoFriendsService.syncKakaoIdentity();
           _goToMain();
         }
       },
@@ -83,10 +86,26 @@ class _SignupScreenState extends State<SignupScreen> {
     return null;
   }
 
+  String _translateSignupError(AuthException e) {
+    final message = e.message.toLowerCase();
+    if (e.code == 'user_already_exists' ||
+        message.contains('already registered') ||
+        message.contains('already exists')) {
+      return '이미 가입된 이메일이에요.';
+    }
+    if (e.code == 'weak_password' || message.contains('password')) {
+      return '비밀번호가 너무 약해요. 다른 비밀번호를 입력해주세요.';
+    }
+    return '회원가입 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+  }
+
   Future<void> _onSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _authErrorText = null;
+    });
 
     try {
       await Supabase.instance.client.auth.signUp(
@@ -101,13 +120,11 @@ class _SignupScreenState extends State<SignupScreen> {
       if (Navigator.canPop(context)) Navigator.pop(context);
     } on AuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      setState(() => _authErrorText = _translateSignupError(e));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원가입 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.')),
+      setState(
+        () => _authErrorText = '회원가입 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.',
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -121,7 +138,8 @@ class _SignupScreenState extends State<SignupScreen> {
         OAuthProvider.kakao,
         redirectTo: 'jjibudung://login-callback/',
         // 비즈니스 인증 완료로 account_email도 승인돼서 같이 요청한다.
-        scopes: 'account_email,profile_nickname,profile_image',
+        // friends: 카카오 친구 중 가입한 사람 추천 기능에 사용.
+        scopes: 'account_email,profile_nickname,profile_image,friends',
       );
       debugPrint('[Kakao] signInWithOAuth 브라우저 실행 결과: $launched');
     } on AuthException catch (e) {
@@ -172,11 +190,17 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '이메일',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(),
+                    errorText: _authErrorText,
                   ),
+                  onChanged: (_) {
+                    if (_authErrorText != null) {
+                      setState(() => _authErrorText = null);
+                    }
+                  },
                   validator: _validateEmail,
                 ),
                 const SizedBox(height: 16),

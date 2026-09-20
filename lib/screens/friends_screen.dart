@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/posture_profile_info.dart';
 import '../models/posture_companion.dart';
+import '../services/kakao_friends_service.dart';
 import '../services/storage_service.dart';
 
 class FriendsScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   bool _isSending = false;
   List<Map<String, dynamic>> _pendingRequests = [];
   List<Map<String, dynamic>> _friends = [];
+  List<Map<String, dynamic>> _kakaoSuggestions = [];
   String _myNickname = '';
   CompanionSelection _mySelection = CompanionSelection.balanced;
   bool _profileLoaded = false;
@@ -26,6 +28,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   void initState() {
     super.initState();
     _loadAll();
+    _loadKakaoSuggestions();
   }
 
   @override
@@ -48,6 +51,44 @@ class _FriendsScreenState extends State<FriendsScreen> {
       _mySelection = selection;
       _profileLoaded = true;
     });
+  }
+
+  Future<void> _loadKakaoSuggestions() async {
+    try {
+      final kakaoIds = await KakaoFriendsService.fetchKakaoFriendIds();
+      final suggestions = await StorageService.findSignedUpKakaoFriends(
+        kakaoIds,
+      );
+      if (!mounted) return;
+      setState(() => _kakaoSuggestions = suggestions);
+    } catch (_) {
+      // 카카오 로그인이 아니거나 토큰이 없으면 그냥 추천 없이 넘어간다.
+    }
+  }
+
+  String _displayName({required String? code, required String? nickname}) {
+    final resolvedCode = code ?? '';
+    return (nickname == null || nickname.isEmpty) ? resolvedCode : nickname;
+  }
+
+  Future<void> _sendKakaoSuggestionRequest(
+    Map<String, dynamic> suggestion,
+  ) async {
+    try {
+      await StorageService.sendFriendRequest(
+        suggestion['friend_code'] as String,
+      );
+      if (!mounted) return;
+      setState(() => _kakaoSuggestions.remove(suggestion));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('친구 요청을 보냈어요.')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_errorMessage(e))));
+    }
   }
 
   String _errorMessage(Object error) {
@@ -87,9 +128,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   String _requesterDisplayName(Map<String, dynamic> request) {
-    final code = request['requester_friend_code'] as String? ?? '';
-    final nickname = request['requester_nickname'] as String?;
-    return (nickname == null || nickname.isEmpty) ? code : nickname;
+    return _displayName(
+      code: request['requester_friend_code'] as String?,
+      nickname: request['requester_nickname'] as String?,
+    );
   }
 
   Future<void> _respond(String requestId, bool accept) async {
@@ -355,6 +397,30 @@ class _FriendsScreenState extends State<FriendsScreen> {
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(child: CircularProgressIndicator()),
             ),
+          if (_kakaoSuggestions.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Text(
+              '카카오 친구 중 가입한 사람',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            for (final suggestion in _kakaoSuggestions)
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.person_search_outlined),
+                  title: Text(
+                    _displayName(
+                      code: suggestion['friend_code'] as String?,
+                      nickname: suggestion['nickname'] as String?,
+                    ),
+                  ),
+                  trailing: TextButton(
+                    onPressed: () => _sendKakaoSuggestionRequest(suggestion),
+                    child: const Text('요청 보내기'),
+                  ),
+                ),
+              ),
+          ],
           const SizedBox(height: 20),
           const Text(
             '내 친구',

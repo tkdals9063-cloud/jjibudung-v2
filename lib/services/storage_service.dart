@@ -376,6 +376,23 @@ class StorageService {
     );
   }
 
+  /// 카카오로 로그인한 계정의 카카오 고유 ID를 저장한다.
+  static Future<void> saveMyKakaoId(String kakaoId) async {
+    await _client.rpc('set_my_kakao_id', params: {'p_kakao_id': kakaoId});
+  }
+
+  /// 카카오 고유 ID 목록 중, 이미 우리 앱에 가입한 사람만 찾아서 돌려준다.
+  static Future<List<Map<String, dynamic>>> findSignedUpKakaoFriends(
+    List<String> kakaoIds,
+  ) async {
+    if (kakaoIds.isEmpty) return [];
+    final rows = await _client.rpc(
+      'find_signed_up_kakao_friends',
+      params: {'p_kakao_ids': kakaoIds},
+    );
+    return List<Map<String, dynamic>>.from(rows as List);
+  }
+
   // ===========================================================
   // 설정 (로컬 전용, 기기별로 달라도 되는 값)
   // ===========================================================

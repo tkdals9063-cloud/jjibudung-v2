@@ -23,6 +23,7 @@ dependencies:
   proximity_sensor: ^1.4.0
   video_player: ^2.14.0
   supabase_flutter: ^2.9.0
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:

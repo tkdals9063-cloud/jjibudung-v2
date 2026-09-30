@@ -274,6 +274,13 @@ class _SignupScreenState extends State<SignupScreen> {
                           ),
                   ),
                 ),
+                const SizedBox(height: 12),
+
+                const Text(
+                  '가입하면 개인정보처리방침에 동의하며, 만 14세 이상임을 확인합니다.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
                 const SizedBox(height: 24),
 
                 Row(

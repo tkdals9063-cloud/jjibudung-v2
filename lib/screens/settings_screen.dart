@@ -19,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _versionLabel = '';
   String _friendCode = '';
   String _nickname = '';
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -124,6 +125,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('회원 탈퇴'),
+        content: const Text(
+          '탈퇴하면 계정과 함께 아래 정보가 모두 삭제되고 복구할 수 없어요.\n\n'
+          '· 공부 기록과 통계\n'
+          '· 보유 포인트 (환급되지 않아요)\n'
+          '· 자세 친구와 친구 목록\n\n'
+          '정말 탈퇴하시겠어요?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              '탈퇴하기',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await StorageService.deleteMyAccount();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('탈퇴 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -192,6 +243,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(color: Colors.redAccent),
                   ),
                   onTap: _signOut,
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.person_remove_outlined,
+                    color: Colors.redAccent,
+                  ),
+                  title: const Text(
+                    '회원 탈퇴',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                  subtitle: const Text('계정과 모든 기록이 삭제돼요.'),
+                  trailing: _isDeleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : null,
+                  onTap: _isDeleting ? null : _deleteAccount,
                 ),
               ],
             ),

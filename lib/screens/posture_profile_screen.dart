@@ -49,15 +49,21 @@ class _PostureProfileScreenState extends State<PostureProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
-    final hasProfile = await StorageService.loadHasInitialPostureProfile();
-    final selection = await StorageService.loadCompanionSelection();
-    if (!mounted) return;
-    setState(() {
-      _hasProfile = hasProfile;
-      _selection = selection;
-      _profileId = selection.routineId;
-      _isLoading = false;
-    });
+    try {
+      final hasProfile = await StorageService.loadHasInitialPostureProfile();
+      final selection = await StorageService.loadCompanionSelection();
+      if (!mounted) return;
+      setState(() {
+        _hasProfile = hasProfile;
+        _selection = selection;
+        _profileId = selection.routineId;
+        _isLoading = false;
+      });
+    } on StateError {
+      // 로드 도중 로그아웃/탈퇴로 세션이 사라지면 이 결과는 쓸 데가 없으므로 중단한다.
+      // 세션이 멀쩡한데 났다면 진짜 버그이므로 그대로 드러낸다.
+      if (StorageService.isSignedIn) rethrow;
+    }
   }
 
   Future<void> _openStretch() async {

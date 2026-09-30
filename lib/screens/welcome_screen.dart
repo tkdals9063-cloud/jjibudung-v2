@@ -46,26 +46,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Future<void> _loadData() async {
-    final today = await StorageService.loadTodayStudyTime();
-    final good = await StorageService.loadTodayGoodPostureTime();
-    final point = await StorageService.loadPoint();
-    final weekUsage = await StorageService.loadCurrentWeekUsage();
-    final hasPostureProfile =
-        await StorageService.loadHasInitialPostureProfile();
-    final selection = await StorageService.loadCompanionSelection();
-    final friends = await StorageService.loadFriends();
+    try {
+      final today = await StorageService.loadTodayStudyTime();
+      final good = await StorageService.loadTodayGoodPostureTime();
+      final point = await StorageService.loadPoint();
+      final weekUsage = await StorageService.loadCurrentWeekUsage();
+      final hasPostureProfile =
+          await StorageService.loadHasInitialPostureProfile();
+      final selection = await StorageService.loadCompanionSelection();
+      final friends = await StorageService.loadFriends();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _todayStudyTime = today;
-      _todayGoodPostureTime = good;
-      _point = point;
-      _weekUsage = weekUsage;
-      _hasPostureProfile = hasPostureProfile;
-      _selection = selection;
-      _friendCount = friends.length;
-    });
+      setState(() {
+        _todayStudyTime = today;
+        _todayGoodPostureTime = good;
+        _point = point;
+        _weekUsage = weekUsage;
+        _hasPostureProfile = hasPostureProfile;
+        _selection = selection;
+        _friendCount = friends.length;
+      });
+    } on StateError {
+      // 로드 도중 로그아웃/탈퇴로 세션이 사라지면 이 결과는 쓸 데가 없으므로 중단한다.
+      // 세션이 멀쩡한데 났다면 진짜 버그이므로 그대로 드러낸다.
+      if (StorageService.isSignedIn) rethrow;
+    }
   }
 
   String _greeting() {

@@ -36,6 +36,9 @@ class StorageService {
     return id;
   }
 
+  /// 여러 단계로 나눠 부르는 로드 도중 로그아웃/탈퇴가 일어났는지 판단할 때 쓴다.
+  static bool get isSignedIn => _client.auth.currentUser != null;
+
   static String _dateKey(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}-'
         '${date.month.toString().padLeft(2, '0')}-'
@@ -391,6 +394,20 @@ class StorageService {
       params: {'p_kakao_ids': kakaoIds},
     );
     return List<Map<String, dynamic>>.from(rows as List);
+  }
+
+  // ===========================================================
+  // 회원 탈퇴
+  // ===========================================================
+
+  /// 계정과 그에 딸린 모든 데이터를 삭제한다. 서버에서 auth.users 행을 지우면
+  /// profiles/usage_logs/stretch_completions/friend_requests 가 CASCADE 로
+  /// 함께 삭제된다. 기기에 남은 로컬 기록도 같이 지운다.
+  static Future<void> deleteMyAccount() async {
+    await _client.rpc('delete_my_account');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    await _client.auth.signOut();
   }
 
   // ===========================================================
